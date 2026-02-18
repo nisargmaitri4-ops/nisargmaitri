@@ -36,8 +36,7 @@ if (missingEnvVars.length > 0) {
 const app = express();
 app.set('trust proxy', 1);
 
-// Store SSE clients
-global.clients = new Set();
+
 
 // Environment-specific settings
 const isProduction = process.env.NODE_ENV === 'production';
@@ -111,35 +110,7 @@ app.use((req, res, next) => {
   next();
 });
 
-// SSE endpoint for order updates
-app.get('/api/order-updates', async (req, res) => {
-  const token = req.query.token;
-  if (!token) {
-    return res.status(401).send('Unauthorized');
-  }
-
-  try {
-    jwt.verify(token, process.env.JWT_SECRET);
-  } catch (err) {
-    return res.status(401).send('Invalid token');
-  }
-
-  res.set({
-    'Content-Type': 'text/event-stream',
-    'Cache-Control': 'no-cache',
-    Connection: 'keep-alive',
-  });
-
-  const client = { id: Date.now(), res };
-  global.clients.add(client);
-
-  res.write('data: {"type": "connected"}\n\n');
-
-  req.on('close', () => {
-    global.clients.delete(client);
-    console.log(`Client ${client.id} disconnected`);
-  });
-});
+// SSE endpoint removed for Vercel compatibility (using polling instead)
 
 // Request logging + ensure DB connected for serverless
 app.use(async (req, res, next) => {
@@ -148,13 +119,11 @@ app.use(async (req, res, next) => {
   // In serverless, ensure DB is connected before handling request
   try {
     await connectDB();
+    next();
   } catch (err) {
+    console.error('DB middleware error:', err.message);
     return res.status(503).json({ error: 'Service unavailable: Database connection failed' });
   }
-  if (mongoose.connection.readyState !== 1) {
-    return res.status(503).json({ error: 'Service unavailable: Database not connected' });
-  }
-  next();
 });
 
 // Routes
@@ -182,48 +151,61 @@ app.get('/health', (req, res) => {
   });
 });
 
-// MongoDB connection
-let isConnected = false;
+// MongoDB connection with promise caching for serverless
+let cachedConnection = null;
+let connectionPromise = null;
 
 const connectDB = async () => {
-  if (isConnected && mongoose.connection.readyState === 1) {
-    return;
+  // Already connected — reuse
+  if (cachedConnection && mongoose.connection.readyState === 1) {
+    return cachedConnection;
   }
 
-  try {
-    const mongooseOptions = {
-      serverSelectionTimeoutMS: 10000,
-      connectTimeoutMS: 10000,
-      socketTimeoutMS: 30000,
-      maxPoolSize: 5,
-      retryWrites: true,
-      retryReads: true,
-      bufferCommands: false,
-    };
-
-    await mongoose.connect(process.env.MONGO_URI, mongooseOptions);
-    isConnected = true;
-    console.log('✅ MongoDB connected');
-  } catch (err) {
-    console.error('❌ MongoDB connection error:', err.message);
-    isConnected = false;
-    throw err;
+  // Connection in progress — wait for it (prevents race conditions)
+  if (connectionPromise) {
+    return connectionPromise;
   }
+
+  // Start a new connection attempt
+  connectionPromise = mongoose.connect(process.env.MONGO_URI, {
+    serverSelectionTimeoutMS: 10000,
+    connectTimeoutMS: 10000,
+    socketTimeoutMS: 30000,
+    maxPoolSize: 5,
+    retryWrites: true,
+    retryReads: true,
+  })
+    .then((conn) => {
+      cachedConnection = conn;
+      console.log('✅ MongoDB connected');
+      return conn;
+    })
+    .catch((err) => {
+      // Reset so next request retries
+      connectionPromise = null;
+      cachedConnection = null;
+      console.error('❌ MongoDB connection error:', err.message);
+      throw err;
+    });
+
+  return connectionPromise;
 };
 
-// Connect to DB on startup
-connectDB();
+// Connect to DB on startup (errors handled per-request)
+connectDB().catch(() => { });
 
 // MongoDB event listeners
 mongoose.connection.on('connected', () => {
-  isConnected = true;
   console.log('MongoDB connection established');
 });
 mongoose.connection.on('disconnected', () => {
-  isConnected = false;
+  cachedConnection = null;
+  connectionPromise = null;
   console.warn('MongoDB disconnected');
 });
 mongoose.connection.on('error', (err) => {
+  cachedConnection = null;
+  connectionPromise = null;
   console.error('MongoDB connection error:', err.message);
 });
 

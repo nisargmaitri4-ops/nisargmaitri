@@ -186,55 +186,22 @@ const AdminDashboard = () => {
   /* ════════════════════════════════════════════════
      SSE — live order updates
      ════════════════════════════════════════════════ */
+  /* ════════════════════════════════════════════════
+     POLLING — periodic order updates (SSE incompatible with Vercel serverless)
+     ════════════════════════════════════════════════ */
   useEffect(() => {
     if (!token) return;
-    const connect = () => {
-      const es = new EventSource(
-        getApiUrl() + "/api/order-updates?token=" + token,
-      );
-      eventSourceRef.current = es;
-      es.onopen = () => {
-        setSseConnected(true);
-        reconnectAttempts.current = 0;
-      };
-      es.onmessage = (ev) => {
-        try {
-          const d = JSON.parse(ev.data);
-          if (
-            (d.event === "newOrder" || d.event === "orderUpdated") &&
-            ["Success", "Paid"].includes(d.order?.paymentStatus)
-          ) {
-            setOrders((prev) => {
-              const exists = prev.some((o) => o.orderId === d.order.orderId);
-              return exists
-                ? prev.map((o) => (o.orderId === d.order.orderId ? d.order : o))
-                : [d.order, ...prev];
-            });
-            toast.success(
-              "Order " +
-                d.order.orderId +
-                " " +
-                (d.event === "newOrder" ? "received" : "updated"),
-            );
-          }
-        } catch {
-          /* ignore parse errors */
-        }
-      };
-      es.onerror = () => {
-        setSseConnected(false);
-        es.close();
-        if (reconnectAttempts.current < 5) {
-          setTimeout(connect, Math.pow(2, reconnectAttempts.current) * 1000);
-          reconnectAttempts.current++;
-        }
-      };
-    };
-    connect();
-    return () => {
-      if (eventSourceRef.current) eventSourceRef.current.close();
-    };
-  }, [token]);
+    
+    // Initial fetch
+    fetchOrders();
+
+    // Poll every 30 seconds
+    const interval = setInterval(() => {
+      fetchOrders();
+    }, 30000);
+
+    return () => clearInterval(interval);
+  }, [token, fetchOrders]);
 
   /* ════════════════════════════════════════════════
      ORDER FILTERING
