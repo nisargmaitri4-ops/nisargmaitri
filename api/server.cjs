@@ -48,7 +48,7 @@ const getAllowedOrigins = () => {
   if (origins) {
     return origins.split(',').map((o) => o.trim());
   }
-  return isProduction 
+  return isProduction
     ? ['https://www.nisargmaitri.in', 'https://nisargmaitri.in', 'https://nisargmaitri.vercel.app']
     : ['http://localhost:5173', 'http://localhost:3000', 'http://localhost:5001'];
 };
@@ -87,12 +87,16 @@ app.use(
 app.use(
   cors({
     origin: (origin, callback) => {
-      console.log(`CORS check for origin: ${origin || 'none'}`);
-      if (!origin || allowedOrigins.includes(origin) || !isProduction) {
-        callback(null, true);
-      } else {
-        callback(new Error(`CORS error: Origin ${origin} not allowed`));
-      }
+      // Allow requests with no origin (mobile apps, curl, server-to-server)
+      if (!origin) return callback(null, true);
+      // In development, allow everything
+      if (!isProduction) return callback(null, true);
+      // Allow any vercel.app subdomain
+      if (origin.endsWith('.vercel.app')) return callback(null, true);
+      // Allow explicitly listed origins
+      if (allowedOrigins.includes(origin)) return callback(null, true);
+      // Block everything else
+      callback(new Error(`CORS error: Origin ${origin} not allowed`));
     },
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
