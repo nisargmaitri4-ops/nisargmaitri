@@ -56,19 +56,21 @@ const CheckoutPage = () => {
       address1: "",
       address2: "",
       city: "",
-      state: "Uttar Pradesh",
-      pincode: "201310",
+      state: "",
+      pincode: "",
       country: "India",
     },
     shippingMethod: { type: "Standard", cost: 50 },
     coupon: { code: "", discount: 0 },
     gstDetails: {
       gstNumber: "",
-      state: "Uttar Pradesh",
-      city: "Gautam Buddha Nagar",
+      state: "",
+      city: "",
     },
     paymentMethod: "COD",
   });
+
+
   const [stateSearch, setStateSearch] = useState(
     formData.shippingAddress.state,
   );
@@ -877,7 +879,7 @@ const CheckoutPage = () => {
           {step === 1 && (
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
               <section className="lg:col-span-2 rounded-lg bg-white p-6 shadow-md">
-                <h2 className="mb-6 border-b border-gray-200 pb-3 text-2xl font-bold text-gray-900">
+                <h2 className="mb-6 border-b border-gray-100 pb-4 text-2xl font-bold font-serif text-[#1A3329]">
                   Billing Information
                 </h2>
                 <form onSubmit={handleStep1Submit} className="space-y-6">
@@ -885,7 +887,7 @@ const CheckoutPage = () => {
                     <div>
                       <label
                         htmlFor="firstName"
-                        className="mb-2 block text-sm font-medium text-gray-700"
+                        className="mb-1.5 block text-sm font-medium text-gray-700"
                       >
                         First Name*
                       </label>
@@ -896,13 +898,13 @@ const CheckoutPage = () => {
                         value={formData.customer.firstName}
                         onChange={handleChange}
                         required
-                        className="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#1A3329]"
+                        className="w-full rounded-lg border border-gray-200 px-4 py-3 text-gray-900 placeholder-gray-400 shadow-sm transition-all duration-200 focus:border-[#1A3329] focus:outline-none focus:ring-1 focus:ring-[#1A3329]"
                       />
                     </div>
                     <div>
                       <label
                         htmlFor="lastName"
-                        className="mb-2 block text-sm font-medium text-gray-700"
+                        className="mb-1.5 block text-sm font-medium text-gray-700"
                       >
                         Last Name*
                       </label>
@@ -913,14 +915,14 @@ const CheckoutPage = () => {
                         value={formData.customer.lastName}
                         onChange={handleChange}
                         required
-                        className="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#1A3329]"
+                        className="w-full rounded-lg border border-gray-200 px-4 py-3 text-gray-900 placeholder-gray-400 shadow-sm transition-all duration-200 focus:border-[#1A3329] focus:outline-none focus:ring-1 focus:ring-[#1A3329]"
                       />
                     </div>
                   </div>
                   <div>
                     <label
                       htmlFor="email"
-                      className="mb-1 block text-sm font-medium text-gray-700"
+                      className="mb-1.5 block text-sm font-medium text-gray-700"
                     >
                       Email*
                     </label>
@@ -931,13 +933,13 @@ const CheckoutPage = () => {
                       value={formData.customer.email}
                       onChange={handleChange}
                       required
-                      className="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#1A3329]"
+                      className="w-full rounded-lg border border-gray-200 px-4 py-3 text-gray-900 placeholder-gray-400 shadow-sm transition-all duration-200 focus:border-[#1A3329] focus:outline-none focus:ring-1 focus:ring-[#1A3329]"
                     />
                   </div>
                   <div>
                     <label
                       htmlFor="phone"
-                      className="mb-1 block text-sm font-medium text-gray-700"
+                      className="mb-1.5 block text-sm font-medium text-gray-700"
                     >
                       Phone*
                     </label>
@@ -949,7 +951,7 @@ const CheckoutPage = () => {
                       onChange={handleChange}
                       required
                       pattern="[0-9]{10}"
-                      className="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#1A3329]"
+                      className="w-full rounded-lg border border-gray-200 px-4 py-3 text-gray-900 placeholder-gray-400 shadow-sm transition-all duration-200 focus:border-[#1A3329] focus:outline-none focus:ring-1 focus:ring-[#1A3329]"
                       aria-describedby="phone-desc"
                     />
                     <p id="phone-desc" className="mt-1 text-xs text-gray-500">
@@ -959,7 +961,7 @@ const CheckoutPage = () => {
                   <div>
                     <label
                       htmlFor="address1"
-                      className="mb-1 block text-sm font-medium text-gray-700"
+                      className="mb-1.5 block text-sm font-medium text-gray-700"
                     >
                       Address 1*
                     </label>
@@ -970,13 +972,13 @@ const CheckoutPage = () => {
                       value={formData.shippingAddress.address1}
                       onChange={handleChange}
                       required
-                      className="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#1A3329]"
+                      className="w-full rounded-lg border border-gray-200 px-4 py-3 text-gray-900 placeholder-gray-400 shadow-sm transition-all duration-200 focus:border-[#1A3329] focus:outline-none focus:ring-1 focus:ring-[#1A3329]"
                     />
                   </div>
                   <div>
                     <label
                       htmlFor="address2"
-                      className="mb-1 block text-sm font-medium text-gray-700"
+                      className="mb-1.5 block text-sm font-medium text-gray-700"
                     >
                       Address 2
                     </label>
@@ -986,14 +988,14 @@ const CheckoutPage = () => {
                       name="shippingAddress.address2"
                       value={formData.shippingAddress.address2}
                       onChange={handleChange}
-                      className="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#1A3329]"
+                      className="w-full rounded-lg border border-gray-200 px-4 py-3 text-gray-900 placeholder-gray-400 shadow-sm transition-all duration-200 focus:border-[#1A3329] focus:outline-none focus:ring-1 focus:ring-[#1A3329]"
                     />
                   </div>
                   <div className="grid grid-cols-1 gap-6 md:grid-cols-3">
                     <div className="relative">
                       <label
                         htmlFor="state"
-                        className="mb-1 block text-sm font-medium text-gray-700"
+                        className="mb-1.5 block text-sm font-medium text-gray-700"
                       >
                         State*
                       </label>
@@ -1007,13 +1009,13 @@ const CheckoutPage = () => {
                           setTimeout(() => setShowStateSuggestions(false), 300)
                         }
                         required
-                        className="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#1A3329]"
+                        className="w-full rounded-lg border border-gray-200 px-4 py-3 text-gray-900 placeholder-gray-400 shadow-sm transition-all duration-200 focus:border-[#1A3329] focus:outline-none focus:ring-1 focus:ring-[#1A3329]"
                         aria-controls="state-suggestions"
                       />
                       {showStateSuggestions && stateSearch && (
                         <ul
                           id="state-suggestions"
-                          className="absolute z-10 mt-1 max-h-48 w-full overflow-y-auto rounded-md border border-gray-300 bg-white shadow-lg"
+                          className="absolute z-10 mt-1 max-h-60 w-full overflow-y-auto rounded-lg border border-gray-200 bg-white shadow-xl ring-1 ring-black/5"
                           role="listbox"
                         >
                           {filteredStates.length ? (
@@ -1021,7 +1023,7 @@ const CheckoutPage = () => {
                               <li
                                 key={state}
                                 onClick={() => selectState(state)}
-                                className="cursor-pointer px-4 py-2 text-sm text-gray-700 hover:bg-gray-100"
+                                className="cursor-pointer px-4 py-2.5 text-sm text-gray-700 transition-colors duration-150 hover:bg-[#1A3329]/5 hover:text-[#1A3329]"
                                 role="option"
                                 aria-selected={
                                   formData.shippingAddress.state === state
@@ -1031,7 +1033,7 @@ const CheckoutPage = () => {
                               </li>
                             ))
                           ) : (
-                            <li className="px-4 py-2 text-sm text-gray-500">
+                            <li className="px-4 py-3 text-sm text-gray-500">
                               No matching states
                             </li>
                           )}
@@ -1041,7 +1043,7 @@ const CheckoutPage = () => {
                     <div>
                       <label
                         htmlFor="city"
-                        className="mb-1 block text-sm font-medium text-gray-700"
+                        className="mb-1.5 block text-sm font-medium text-gray-700"
                       >
                         City*
                       </label>
@@ -1052,13 +1054,13 @@ const CheckoutPage = () => {
                         value={formData.shippingAddress.city}
                         onChange={handleChange}
                         required
-                        className="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#1A3329]"
+                        className="w-full rounded-lg border border-gray-200 px-4 py-3 text-gray-900 placeholder-gray-400 shadow-sm transition-all duration-200 focus:border-[#1A3329] focus:outline-none focus:ring-1 focus:ring-[#1A3329]"
                       />
                     </div>
                     <div>
                       <label
                         htmlFor="pincode"
-                        className="mb-1 text-sm font-medium text-gray-700"
+                        className="mb-1.5 text-sm font-medium text-gray-700"
                       >
                         Pincode*
                       </label>
@@ -1070,25 +1072,25 @@ const CheckoutPage = () => {
                         onChange={handleChange}
                         required
                         pattern="[0-9]{6}"
-                        className="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#1A3329]"
+                        className="w-full rounded-lg border border-gray-200 px-4 py-3 text-gray-900 placeholder-gray-400 shadow-sm transition-all duration-200 focus:border-[#1A3329] focus:outline-none focus:ring-1 focus:ring-[#1A3329]"
                         aria-describedby="pincode-desc"
                       />
                       <p
                         id="pincode-desc"
-                        className="mt-1 text-xs text-gray-500"
+                        className="mt-1.5 text-xs text-gray-500"
                       >
                         Enter a 6-digit pincode
                       </p>
                     </div>
                   </div>
-                  <div className="rounded-md border border-gray-200 bg-gray-50 p-4">
-                    <h3 className="mb-3 text-lg font-semibold text-gray-900">
+                  <div className="rounded-lg border border-gray-200 bg-gray-50/50 p-5">
+                    <h3 className="mb-4 text-base font-semibold text-gray-900">
                       GST Details (Optional)
                     </h3>
                     <div>
                       <label
                         htmlFor="gstNumber"
-                        className="mb-1 block text-sm font-medium text-gray-700"
+                        className="mb-1.5 block text-sm font-medium text-gray-700"
                       >
                         GST Number
                       </label>
@@ -1098,7 +1100,7 @@ const CheckoutPage = () => {
                         name="gstDetails.gstNumber"
                         value={formData.gstDetails.gstNumber}
                         onChange={handleChange}
-                        className="w-full rounded-md border border-gray-300 px-4 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#1A3329]"
+                        className="w-full rounded-lg border border-gray-200 px-4 py-3 text-gray-900 placeholder-gray-400 shadow-sm transition-all duration-200 focus:border-[#1A3329] focus:outline-none focus:ring-1 focus:ring-[#1A3329]"
                         aria-describedby="gst-desc"
                       />
                       <p id="gst-desc" className="mt-1 text-xs text-gray-500">
@@ -1133,7 +1135,7 @@ const CheckoutPage = () => {
                 </form>
               </section>
               <aside className="h-fit rounded-lg bg-white p-6 shadow-md">
-                <h2 className="mb-4 border-b border-gray-200 pb-3 text-xl font-bold text-gray-900">
+                <h2 className="mb-4 border-b border-gray-100 pb-4 text-xl font-bold font-serif text-[#1A3329]">
                   Order Summary
                 </h2>
                 <div className="mb-4 space-y-3">
@@ -1184,7 +1186,7 @@ const CheckoutPage = () => {
           {step === 2 && (
             <div className="grid grid-cols-1 gap-8 lg:grid-cols-3">
               <section className="lg:col-span-2 rounded-lg bg-white p-6 shadow-md">
-                <h2 className="mb-6 border-b border-gray-200 pb-3 text-2xl font-bold text-gray-900">
+                <h2 className="mb-6 border-b border-gray-100 pb-4 text-2xl font-bold font-serif text-[#1A3329]">
                   Payment Method
                 </h2>
                 <form onSubmit={handleSubmit} className="space-y-6">
@@ -1214,10 +1216,10 @@ const CheckoutPage = () => {
                     ].map((method) => (
                       <label
                         key={method.value}
-                        className={`flex cursor-pointer items-center gap-4 rounded-lg border-2 p-4 transition-all duration-200 ${
+                        className={`flex cursor-pointer items-center gap-4 rounded-xl border p-5 transition-all duration-200 ${
                           formData.paymentMethod === method.value
-                            ? "border-[#1A3329] bg-[#1A3329]/5 shadow-sm"
-                            : "border-gray-200 hover:border-gray-300 hover:bg-gray-50"
+                            ? "border-[#1A3329] bg-[#1A3329]/5 ring-1 ring-[#1A3329] shadow-md"
+                            : "border-gray-200 hover:border-[#1A3329]/50 hover:bg-gray-50 hover:shadow-sm"
                         }`}
                       >
                         <input
@@ -1299,7 +1301,7 @@ const CheckoutPage = () => {
                 </form>
               </section>
               <aside className="h-fit rounded-lg bg-white p-6 shadow-md">
-                <h2 className="mb-4 border-b border-gray-200 pb-3 text-xl font-bold text-gray-900">
+                <h2 className="mb-4 border-b border-gray-100 pb-4 text-xl font-bold font-serif text-[#1A3329]">
                   Order Summary
                 </h2>
                 <div className="mb-4 space-y-3">
@@ -1324,30 +1326,30 @@ const CheckoutPage = () => {
                     Apply Coupon
                   </h3>
                   <div className="flex gap-2">
-                    <input
-                      type="text"
-                      placeholder="Enter coupon code"
-                      value={formData.coupon.code}
-                      onChange={(e) =>
-                        handleChange({
-                          target: {
-                            name: "coupon.code",
-                            value: e.target.value,
-                          },
-                        })
-                      }
-                      className="flex-1 text-sm rounded-md border border-gray-300 px-3 py-2 focus:border-transparent focus:outline-none focus:ring-2 focus:ring-[#1A3329]"
-                      aria-label="Coupon code"
-                      disabled={couponLoading}
-                    />
-                    <button
-                      type="button"
-                      onClick={applyCoupon}
-                      className="rounded-md bg-[#1A3329] px-3 py-2 text-sm font-medium text-white hover:bg-[#2F6844] disabled:cursor-not-allowed disabled:opacity-50"
-                      disabled={couponLoading}
-                    >
-                      {couponLoading ? "Applying..." : "Apply"}
-                    </button>
+                      <input
+                        type="text"
+                        placeholder="Enter coupon code"
+                        value={formData.coupon.code}
+                        onChange={(e) =>
+                          handleChange({
+                            target: {
+                              name: "coupon.code",
+                              value: e.target.value,
+                            },
+                          })
+                        }
+                        className="flex-1 rounded-lg border border-gray-200 px-4 py-3 text-sm text-gray-900 placeholder-gray-400 shadow-sm transition-all duration-200 focus:border-[#1A3329] focus:outline-none focus:ring-1 focus:ring-[#1A3329]"
+                        aria-label="Coupon code"
+                        disabled={couponLoading}
+                      />
+                      <button
+                        type="button"
+                        onClick={applyCoupon}
+                        className="rounded-lg bg-[#1A3329] px-6 py-3 text-sm font-medium text-white shadow-sm transition-all duration-200 hover:bg-[#2F6844] hover:shadow-md active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-50"
+                        disabled={couponLoading}
+                      >
+                        {couponLoading ? "Applying..." : "Apply"}
+                      </button>
                   </div>
                   {formData.coupon.discount > 0 && (
                     <p className="mt-2 flex items-center text-sm text-green-600">

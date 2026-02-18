@@ -1,6 +1,13 @@
 import { useEffect } from "react";
 import axios from "axios";
 
+// Use relative URL in production for same-domain deployment
+const getApiUrl = () => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  if (import.meta.env.PROD) return '';
+  return 'http://localhost:5001';
+};
+
 const loadScript = (src) =>
   new Promise((resolve) => {
     const script = document.createElement("script");
@@ -44,7 +51,7 @@ const RenderRazorpay = ({ orderId, keyId, currency, amount }) => {
           alert(
             "Payment successful! Payment ID: " + response.razorpay_payment_id
           );
-          axios.post("http://localhost:8005/payment", {
+          axios.post(`${getApiUrl()}/api/orders/payment`, {
             status: "success",
             orderDetails: response,
           });
