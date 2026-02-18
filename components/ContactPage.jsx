@@ -3,7 +3,12 @@ import Navbar from "./Navbar";
 import Footer from "./Footer";
 import axios from "axios";
 
-const getApiUrl = () => import.meta.env.VITE_API_URL || "https://backendforshop.onrender.com";
+// Use relative URL in production for same-domain deployment
+const getApiUrl = () => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  if (import.meta.env.PROD) return "";
+  return "http://localhost:5001";
+};
 
 const Toast = ({ message, visible, onClose, type = "success" }) =>
   visible && (
@@ -268,7 +273,8 @@ const ContactPage = () => {
   const handleApiError = (error, operation) => {
     const status = error.response?.status;
     const message =
-      error.response?.data?.error || `Failed to ${operation}. Please try again.`;
+      error.response?.data?.error ||
+      `Failed to ${operation}. Please try again.`;
     console.error(`${operation} error:`, status, message);
 
     if (status === 401 || status === 403) {
@@ -342,7 +348,7 @@ const ContactPage = () => {
               "Content-Type": "application/json",
             },
             withCredentials: true,
-          }
+          },
         );
 
         setFormSubmitted(true);

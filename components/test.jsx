@@ -1,7 +1,148 @@
-
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
+
+// NisargBotLogo Component
+const NisargBotLogo = ({ size = 40, className = "" }) => (
+  <div className={`relative ${className}`} style={{ width: size, height: size }}>
+    <svg viewBox="0 0 400 500" xmlns="http://www.w3.org/2000/svg" width={size} height={size}>
+      {/* Background */}
+      <rect width="400" height="500" fill="transparent"/>
+      
+      {/* Main circular logo area */}
+      <g transform="translate(200,180)">
+        {/* Outer circle with gradient */}
+        <defs>
+          <radialGradient id="earthGradient" cx="0.3" cy="0.3">
+            <stop offset="0%" style={{stopColor:"#87ceeb", stopOpacity:1}} />
+            <stop offset="100%" style={{stopColor:"#4682b4", stopOpacity:1}} />
+          </radialGradient>
+          <linearGradient id="leafGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+            <stop offset="0%" style={{stopColor:"#90EE90", stopOpacity:1}} />
+            <stop offset="100%" style={{stopColor:"#228B22", stopOpacity:1}} />
+          </linearGradient>
+        </defs>
+        
+        {/* Main circle background */}
+        <circle cx="0" cy="0" r="140" fill="url(#earthGradient)"/>
+        
+        {/* Earth/Globe in upper portion */}
+        <g transform="translate(0,-50)">
+          {/* Globe base with ocean */}
+          <circle cx="0" cy="0" r="35" fill="#4682b4"/>
+          
+          {/* More realistic continents - North America */}
+          <path d="M -25,-20 Q -20,-25 -15,-22 Q -10,-18 -8,-15 Q -5,-12 -3,-10 Q 0,-8 2,-12 Q 5,-15 8,-12 Q 12,-8 10,-5 Q 8,-2 5,0 Q 2,3 -2,5 Q -8,8 -15,6 Q -22,3 -25,-5 Q -28,-12 -25,-20 Z" fill="#228b22"/>
+          
+          {/* Europe and Africa */}
+          <path d="M -5,-25 Q 0,-28 5,-25 Q 10,-22 12,-18 Q 15,-15 18,-12 Q 20,-8 22,-4 Q 25,0 23,5 Q 20,10 15,12 Q 10,15 5,13 Q 0,10 -2,6 Q -4,2 -2,-2 Q 0,-6 -2,-10 Q -5,-15 -5,-25 Z" fill="#228b22"/>
+          
+          {/* Asia */}
+          <path d="M 8,-30 Q 15,-32 22,-28 Q 28,-24 30,-18 Q 32,-12 28,-8 Q 24,-4 20,-2 Q 16,2 12,0 Q 8,-4 10,-8 Q 12,-12 8,-16 Q 6,-20 8,-30 Z" fill="#228b22"/>
+          
+          {/* Ocean details - lighter blue areas */}
+          <circle cx="-15" cy="8" r="4" fill="#6495ed" opacity="0.6"/>
+          <circle cx="10" cy="-8" r="3" fill="#6495ed" opacity="0.6"/>
+          <circle cx="15" cy="15" r="5" fill="#6495ed" opacity="0.6"/>
+          
+          {/* Ice caps */}
+          <ellipse cx="0" cy="-30" rx="12" ry="5" fill="#f0f8ff" opacity="0.8"/>
+          <ellipse cx="0" cy="30" rx="15" ry="6" fill="#f0f8ff" opacity="0.8"/>
+          
+          {/* Large leaf sprouting from globe */}
+          <path d="M 25,-12 Q 40,-25 55,-12 Q 50,5 35,8 Q 25,2 25,-12 Z" fill="url(#leafGradient)" stroke="#228b22" strokeWidth="2"/>
+          <path d="M 30,-5 Q 35,-15 42,-5 Q 38,0 35,2" fill="none" stroke="#228b22" strokeWidth="1.5"/>
+        </g>
+        
+        {/* Mountains with trees */}
+        <g transform="translate(0,40)">
+          {/* Mountain range */}
+          <path d="M -120,30 L -80,-15 L -40,20 L 0,-25 L 40,20 L 80,-15 L 120,30 L 120,60 L -120,60 Z" fill="#8fbc8f"/>
+          <path d="M -120,30 L -80,-15 L -40,20 L 0,-25 L 40,20 L 80,-15 L 120,30" fill="none" stroke="#556b2f" strokeWidth="2"/>
+          
+          {/* Trees scattered on mountains */}
+          <g transform="translate(-70,25)">
+            <rect x="-2" y="0" width="4" height="15" fill="#8b4513"/>
+            <ellipse cx="0" cy="-5" rx="8" ry="12" fill="#228b22"/>
+          </g>
+          <g transform="translate(-20,10)">
+            <rect x="-2" y="0" width="4" height="15" fill="#8b4513"/>
+            <ellipse cx="0" cy="-5" rx="8" ry="12" fill="#228b22"/>
+          </g>
+          <g transform="translate(50,25)">
+            <rect x="-2" y="0" width="4" height="15" fill="#8b4513"/>
+            <ellipse cx="0" cy="-5" rx="8" ry="12" fill="#228b22"/>
+          </g>
+          <g transform="translate(90,15)">
+            <rect x="-1.5" y="0" width="3" height="12" fill="#8b4513"/>
+            <ellipse cx="0" cy="-4" rx="6" ry="10" fill="#228b22"/>
+          </g>
+        </g>
+        
+        {/* Water/River at bottom */}
+        <g transform="translate(0,90)">
+          <ellipse cx="0" cy="0" rx="100" ry="15" fill="#4169e1" opacity="0.8"/>
+          <ellipse cx="-30" cy="2" rx="20" ry="5" fill="#87ceeb"/>
+          <ellipse cx="25" cy="-2" rx="15" ry="4" fill="#87ceeb"/>
+          <ellipse cx="0" cy="0" rx="12" ry="3" fill="#ffffff" opacity="0.6"/>
+        </g>
+      </g>
+      
+      {/* Chat bubble with AI indicator */}
+      <g transform="translate(320,120)">
+        {/* Main chat bubble */}
+        <path d="M 0,0 Q 0,-20 20,-20 L 40,-20 Q 55,-20 55,0 L 55,15 Q 55,30 40,30 L 15,30 L 8,40 L 15,30 L 20,30 Q 0,30 0,15 Z" 
+              fill="#ffffff" stroke="#4CAF50" strokeWidth="3" opacity="0.95"/>
+        {/* Chat dots */}
+        <circle cx="18" cy="5" r="3" fill="#4CAF50"/>
+        <circle cx="28" cy="5" r="3" fill="#4CAF50"/>
+        <circle cx="38" cy="5" r="3" fill="#4CAF50"/>
+      </g>
+      
+      {/* AI Bot indicator */}
+      <g transform="translate(340,95)">
+        <circle cx="0" cy="0" r="12" fill="#2196F3" stroke="#ffffff" strokeWidth="2"/>
+        <text x="0" y="4" textAnchor="middle" fill="white" fontFamily="Arial, sans-serif" fontSize="12" fontWeight="bold">AI</text>
+      </g>
+    </svg>
+  </div>
+);
+
+// Simplified version for small spaces
+const SimpleNisargLogo = ({ size = 24, className = "" }) => (
+  <div className={`relative ${className}`} style={{ width: size, height: size }}>
+    <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg" width={size} height={size}>
+      <defs>
+        <radialGradient id="simpleEarthGradient" cx="0.3" cy="0.3">
+          <stop offset="0%" style={{stopColor:"#87ceeb", stopOpacity:1}} />
+          <stop offset="100%" style={{stopColor:"#4682b4", stopOpacity:1}} />
+        </radialGradient>
+        <linearGradient id="simpleLeafGradient" x1="0%" y1="0%" x2="100%" y2="100%">
+          <stop offset="0%" style={{stopColor:"#90EE90", stopOpacity:1}} />
+          <stop offset="100%" style={{stopColor:"#228B22", stopOpacity:1}} />
+        </linearGradient>
+      </defs>
+      
+      {/* Main circle */}
+      <circle cx="50" cy="50" r="45" fill="url(#simpleEarthGradient)"/>
+      
+      {/* Globe */}
+      <circle cx="50" cy="40" r="15" fill="#4682b4"/>
+      <path d="M 40,35 Q 45,30 50,35 Q 55,40 52,45 Q 48,48 45,45 Q 42,40 40,35 Z" fill="#228b22"/>
+      <path d="M 52,32 Q 58,30 60,35 Q 58,42 52,40 Q 50,35 52,32 Z" fill="#228b22"/>
+      
+      {/* Leaf */}
+      <path d="M 60,35 Q 70,25 75,35 Q 70,45 65,42 Q 60,38 60,35 Z" fill="url(#simpleLeafGradient)"/>
+      
+      {/* Mountains */}
+      <path d="M 20,60 L 35,45 L 50,55 L 65,40 L 80,60 L 80,75 L 20,75 Z" fill="#8fbc8f"/>
+      
+      {/* Tree */}
+      <rect x="48" y="65" width="2" height="8" fill="#8b4513"/>
+      <circle cx="49" cy="62" r="4" fill="#228b22"/>
+    </svg>
+  </div>
+);
 
 // Comprehensive product database with complete details
 const COMPREHENSIVE_PRODUCTS = [
@@ -1055,242 +1196,123 @@ const EnhancedChatbot = () => {
           b.toLowerCase().includes('plastic')
         ).length * 2;
         
-        return `**${index + 1}. ${p.name}** - ₹${p.price}\n🏷️ **Category:** ${p.category} (${p.subCategory})\n⭐ **Quality Score:** ${p.rating}/5 (${p.reviews} reviews)\n💰 **Value Rating:** ${valueScore} points per ₹\n📈 **Popularity:** ${popularityScore}/10\n🌱 **Eco-Impact:** ${ecoScore}/10\n✅ **Best For:** ${p.benefits.slice(0, 2).join(', ')}\n🔧 **Key Features:** ${p.features.slice(0, 2).join(', ')}\n📦 **Specs:** ${p.dimensions || 'Standard size'} | ${p.weight || 'Lightweight'}\n🛡️ **Warranty:** ${p.warranty}\n🏆 **Certifications:** ${p.certifications?.join(', ') || 'Quality tested'}`;
-      }).join('\n\n🆚\n\n');
-      
-      // Calculate winners in different categories
-      const bestValue = topProducts.reduce((best, current) => 
-        ((current.rating * 100) / current.price) > ((best.rating * 100) / best.price) ? current : best
-      );
-      
-      const mostPopular = topProducts.reduce((most, current) => 
-        current.reviews > most.reviews ? current : most
-      );
-      
-      const highestRated = topProducts.reduce((highest, current) => 
-        current.rating > highest.rating ? current : highest
-      );
-      
-      return `🆚 **Comprehensive Product Comparison:**\n\n${comparison}\n\n🏆 **Winners by Category:**\n\n💰 **Best Value Champion:** ${bestValue.name}\n   **Why:** Highest quality-per-rupee ratio (${((bestValue.rating * 100) / bestValue.price).toFixed(1)} points per ₹)\n\n🔥 **Popularity King:** ${mostPopular.name}\n   **Why:** ${mostPopular.reviews} customer reviews prove reliability\n\n⭐ **Quality Leader:** ${highestRated.name}\n   **Why:** ${highestRated.rating}/5 rating shows superior quality\n\n🎯 **Smart Decision Matrix:**\n• **First-time eco-user?** → Choose most popular (proven choice)\n• **Budget-conscious?** → Go with best value option  \n• **Quality seeker?** → Pick highest-rated product\n• **Specific lifestyle?** → Tell me your use case for personalized advice\n\n💡 **Need help deciding?** Ask me:\n"Which is best for [your specific use]?" or "What do customers say about [product name]?"\n\n**What matters most to you: price, quality, popularity, or specific features?**`;
+        return `**${index + 1}. ${p.name}** - ₹${p.price}\n🏷️ **Category:** ${p.category} (${p.subCategory})\n⭐ **Quality Score:** ${p.rating}/5 (${p.reviews} reviews)\n💰 **Value Rating:** ${valueScore} points per ₹\n📈 **Popularity:** ${popularityScore}/10\n🌱 **Eco-Impact:** ${ecoScore}/10\n✅ **Best For:** ${p.benefits.slice(0, 2).join(', ')}\n🔧 **Key Features:** ${p.features.slice(0, 2).join(', ')}\n📦 **Specs:** ${p.dimensions || 'Standard size'} | ${p.weight || 'Lightweight'}\n🛡️ **Warranty:** ${p.warranty}\n🏆 **Certifications:** ${p.certifications?.join(', ')}\n`
+        ).join('\n\n');
+        
+        const winner = topProducts.reduce((best, current) => 
+          (current.rating * current.reviews / current.price) > (best.rating * best.reviews / best.price) ? current : best
+        );
+        
+        return `🔍 **Intelligent Comparison Analysis**\n\n${comparison}\n\n🏆 **Best Overall: ${winner.name}**\n💡 **Why it stands out:** Highest value score with ${winner.benefits[0]} and ${winner.rating}/5 rating.\n\n📊 **Comparison Insights:**\n• **Price Range:** ₹${Math.min(...topProducts.map(p => p.price))} - ₹${Math.max(...topProducts.map(p => p.price))}\n• **Top Categories:** ${[...new Set(topProducts.map(p => p.category))].join(', ')}\n• **Average Rating:** ${(topProducts.reduce((sum, p) => sum + p.rating, 0) / topProducts.length).toFixed(1)}/5\n\n💬 **Next Steps:**\n• Ask "Tell me more about ${winner.name}" for details\n• Say "Compare specific products" for custom comparison\n• Or explore by category: "${topProducts[0].category}" or "${topProducts[1].category}"\n\nWhich product interests you most?`;
+      } else {
+        return `🤔 I understand you want a comparison, but I need more specifics! Please try:\n• "Compare bamboo toothbrush and steel bottle"\n• "What's better for office use?"\n• "Compare menstrual cup vs period panties"\n\n💡 **Popular comparisons:**\n1. Bamboo Toothbrush vs. Bamboo Razor (Personal Care)\n2. Steel Bottle vs. Glass Bottle (Hydration)\n3. Menstrual Cup vs. Period Panties (Feminine Care)\n\nWhat would you like me to compare for you?`;
+      }
     }
 
-    // Enhanced FAQ system with intelligent matching and comprehensive answers
+    // Eco-advice with personalized, level-based tips
+    if (understanding.intent === 'eco_advice' || lowerInput.includes('tip') || lowerInput.includes('sustainable') || lowerInput.includes('eco')) {
+      const ecoLevel = userProfile.ecoLevel || 'beginner';
+      const tips = KNOWLEDGE_BASE.eco_education[ecoLevel].tips.slice(0, 3);
+      const facts = KNOWLEDGE_BASE.eco_education.beginner.facts[Math.floor(Math.random() * KNOWLEDGE_BASE.eco_education.beginner.facts.length)];
+      
+      const tipList = tips.map((tip, index) => 
+        `${index + 1}️⃣ **${tip.tip}**\n   🌱 **Impact:** ${tip.impact}\n   ⚖️ **Difficulty:** ${'★'.repeat(tip.difficulty)}${'☆'.repeat(3 - tip.difficulty)}`
+      ).join('\n\n');
+      
+      setUserProfile(prev => ({ ...prev, interests: [...new Set([...prev.interests, 'sustainability'])] }));
+      
+      return `🌍 **${ecoLevel.charAt(0).toUpperCase() + ecoLevel.slice(1)} Eco-Living Tips** 🌱\n\n${tipList}\n\n📚 **Fun Fact:** ${facts}\n\n💡 **Make it personal:**\n• Are you a ${ecoLevel} in eco-living? Or want ${ecoLevel === 'beginner' ? 'intermediate' : ecoLevel === 'intermediate' ? 'advanced' : 'beginner'} tips?\n• Try: "Eco-tips for ${userProfile.lifestyle[0] || 'office use'}"\n• Ask: "How can I reduce waste in my ${userProfile.lifestyle[0] || 'daily routine'}?"\n\nWhat eco-friendly topic are you curious about today?`;
+    }
+
+    // FAQ handling with intelligent matching
     const faqMatch = KNOWLEDGE_BASE.product_faqs.find(faq => 
       faq.keywords.some(keyword => lowerInput.includes(keyword))
     );
     
     if (faqMatch) {
-      const relatedFaqs = KNOWLEDGE_BASE.product_faqs
-        .filter(f => f !== faqMatch)
-        .slice(0, 2);
-        
-      return `🧠 **Expert Answer:**\n\n❓ **${faqMatch.question}**\n\n💡 **${faqMatch.answer}**\n\n🎯 **Related Questions You Might Have:**\n${relatedFaqs.map(f => `• ${f.question}`).join('\n')}\n\n📚 **Additional Resources:**\n• All products come with detailed care instructions\n• Video tutorials available on our website\n• 30-day satisfaction guarantee on all purchases\n• Free expert consultation: ${KNOWLEDGE_BASE.company_info.contact.phone}\n\n**Have more questions?** I can explain anything about:\n• Product specifications & safety certifications\n• Environmental benefits & sustainability impact\n• Usage tips & maintenance best practices\n• Bulk pricing & institutional partnerships\n• Shipping & returns policy`;
+      setConversationContext(prev => ({
+        ...prev,
+        lastTopic: 'faq',
+        topics_discussed: [...new Set([...prev.topics_discussed, 'faq'])]
+      }));
+      
+      return `❓ **FAQ: ${faqMatch.question}**\n\n${faqMatch.answer}\n\n💬 **More questions?** Try:\n• "Tell me about [another topic]"\n• "What are your certifications?"\n• "How can I contact support?"\n\nWhat else would you like to know?`;
     }
 
-    // Intelligent eco-tips with personalization and impact measurement
-    if (understanding.intent === 'eco_advice' || 
-        lowerInput.includes('tip') || lowerInput.includes('eco') || lowerInput.includes('sustainable') || 
-        lowerInput.includes('environment') || lowerInput.includes('green') || lowerInput.includes('🌱')) {
-      
-      const userLevel = userProfile.ecoLevel || 'beginner';
-      const tips = KNOWLEDGE_BASE.eco_education[userLevel];
-      
-      if (tips) {
-        const personalizedTips = tips.tips
-          .sort(() => 0.5 - Math.random())
-          .slice(0, 5);
-          
-        const tipsList = personalizedTips.map((tip, index) => 
-          `${index + 1}️⃣ **${tip.tip}**\n   🌍 **Impact:** ${tip.impact}\n   📊 **Difficulty:** ${'⭐'.repeat(tip.difficulty)}/${'⭐⭐⭐'}\n   💡 **Why it works:** Addresses ${['basic', 'intermediate', 'advanced'][tip.difficulty - 1]} sustainability challenges`
-        ).join('\n\n');
-        
-        const levelFacts = KNOWLEDGE_BASE.eco_education[userLevel].facts || [];
-        const randomFact = levelFacts[Math.floor(Math.random() * levelFacts.length)];
-        
-        // Calculate potential impact
-        const potentialSavings = personalizedTips.reduce((total, tip) => {
-          const savings = tip.impact.match(/₹(\d+)/);
-          return total + (savings ? parseInt(savings[1]) : 0);
-        }, 0);
-        
-        const userName_text = userName ? `, ${userName}` : '';
-        return `🌱 **Personalized Eco-Guide for ${userLevel.charAt(0).toUpperCase() + userLevel.slice(1)}s${userName_text}:**\n\n${tipsList}\n\n${randomFact ? `💡 **Amazing Fact:** ${randomFact}\n\n` : ''}📊 **Your Potential Impact:**\n💰 Potential savings: ₹${potentialSavings}+ annually\n🌍 CO₂ reduction: Significant positive impact\n♻️ Waste reduction: Hundreds of items yearly\n\n🎯 **This Week's Challenge:** Pick ONE tip and commit to it for 7 days!\n\n📈 **Ready to level up?** Ask for:\n• "Beginner eco tips" - Start your journey (⭐)\n• "Intermediate tips" - Build strong habits (⭐⭐)\n• "Advanced tips" - Transform your lifestyle (⭐⭐⭐)\n\n🌟 **Remember:** Every small action creates ripples of positive change across our planet!\n\n**Which tip resonates most with you?**`;
-      }
+    // Contact information with actionable details
+    if (understanding.intent === 'contact_info' || lowerInput.includes('contact') || lowerInput.includes('support')) {
+      const contact = KNOWLEDGE_BASE.company_info.contact;
+      return `📞 **Get in Touch with Nisarg Maitri!**\n\n📧 **Email:** ${contact.email}\n📱 **Phone/WhatsApp:** ${contact.phone}\n🌐 **Website:** ${contact.website}\n🕒 **Hours:** ${contact.hours}\n📍 **HQ:** ${KNOWLEDGE_BASE.company_info.locations.headquarters}\n\n💡 **Quick Tips:**\n• Use WhatsApp for instant replies\n• Email for order inquiries or bulk discounts\n• Visit our website for full product catalog\n\nHow can I assist you further?`;
     }
 
-    // Comprehensive contact and support information
-    if (understanding.intent === 'contact_info' || 
-        lowerInput.includes('contact') || lowerInput.includes('support') || 
-        lowerInput.includes('phone') || lowerInput.includes('📞')) {
-      
-      const contactInfo = KNOWLEDGE_BASE.company_info.contact;
-      const companyInfo = KNOWLEDGE_BASE.company_info;
-      
-      return `📞 **Complete Contact Information:**\n\n🏢 **Nisarg Maitri Headquarters:**\n📍 ${companyInfo.locations.headquarters}\n\n📱 **Get In Touch:**\n• **Phone/WhatsApp:** ${contactInfo.phone}\n• **Email:** ${contactInfo.email}\n• **Website:** ${contactInfo.website}\n• **Hours:** ${contactInfo.hours}\n\n🌐 **Other Locations:**\n📍 **Branch Office:** ${companyInfo.locations.branch}\n\n💬 **Instant Support Options:**\n🤖 **Live AI Chat:** Right here with me 24/7!\n📱 **WhatsApp Support:** ${contactInfo.whatsapp}\n📧 **Email Support:** Average response time 2-4 hours\n📞 **Phone Support:** Direct connection to our team\n\n📦 **Service Information:**\n🚚 **Shipping:** Pan-India delivery (Free on ₹500+)\n🔄 **Returns:** 30-day hassle-free policy\n💳 **Payment:** Multiple secure options available\n🏆 **Warranty:** Product-specific warranties included\n\n🎯 **Why Contact Us:**\n• Bulk orders & institutional pricing\n• Custom product recommendations\n• Sustainability consultation\n• Product care guidance\n• Partnership opportunities\n\n**How can I help you connect with our team today?** 😊`;
-    }
-
-    // Enhanced thank you responses with personality and encouragement
-    if (understanding.entities.sentiment === 'positive' || 
-        CONVERSATION_PATTERNS.intent_keywords.thanks.some(t => lowerInput.includes(t))) {
-      
-      const responses = [
-        `You're absolutely welcome${userName ? `, ${userName}` : ''}! 😊`,
-        `My pleasure to help you${userName ? `, ${userName}` : ''}! 🌟`,
-        `Happy to support your eco-journey${userName ? `, ${userName}` : ''}! 💚`
-      ];
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-      
-      const encouragements = [
-        "Your commitment to sustainability makes a real difference! 🌍",
-        "Every eco-friendly choice helps create a better future! 🌱",
-        "You're part of a growing community of eco-warriors! 💪",
-        "Small changes today lead to massive environmental impact! ✨"
-      ];
-      const randomEncouragement = encouragements[Math.floor(Math.random() * encouragements.length)];
-      
-      const sessionStats = {
-        productsViewed: conversationContext.session_products_viewed.length || 3,
-        topicsDiscussed: conversationContext.topics_discussed.length,
-        questionsAsked: conversationContext.askedQuestions.length
-      };
-      
-      return `${randomResponse}\n\n✨ **${randomEncouragement}**\n\n🎯 **Continue Your Eco-Discovery:**\n• Explore products in new categories\n• Learn advanced sustainability techniques\n• Calculate your environmental impact\n• Ask about bulk orders for family/office\n• Get personalized eco-living plans\n• Discover seasonal eco-challenges\n\n📊 **Your Session Impact:**\n🛍️ Products explored: ${sessionStats.productsViewed}+\n💬 Topics discussed: ${sessionStats.topicsDiscussed}\n🧠 AI understanding level: ${aiState.understanding_level}%\n\n💡 **Fun fact:** You're already more eco-conscious than 85% of people just by exploring sustainable alternatives!\n\n**What else can I help you discover on your sustainability journey?**`;
-    }
-
-    // Intelligent goodbye responses with impact summary
-    if (lowerInput.includes('bye') || lowerInput.includes('goodbye') || lowerInput.includes('see you')) {
-      const goodbyes = [
-        `Take care${userName ? `, ${userName}` : ''}! 🌱`,
-        `Goodbye${userName ? `, ${userName}` : ''}! Keep making Earth-friendly choices! 🌍`,
-        `See you soon${userName ? `, ${userName}` : ''}! 💚`
-      ];
-      const randomGoodbye = goodbyes[Math.floor(Math.random() * goodbyes.length)];
-      
-      const impactSummary = `🌍 **Your Eco-Impact Session:**\n• Products explored: ${conversationContext.session_products_viewed.length || 'Several'}\n• Sustainability tips learned: ${conversationContext.topics_discussed.length || 'Multiple'}\n• AI conversations: ${conversationContext.conversationDepth} exchanges\n• Potential plastic items saved: ${Math.floor(Math.random() * 100) + 50}+\n• CO₂ footprint reduction potential: Significant!\n• Knowledge gained: Invaluable for sustainable living`;
-      
-      return `${randomGoodbye}\n\n${impactSummary}\n\n🌟 **Keep Making a Difference:**\n• Every sustainable choice counts\n• Share your eco-knowledge with others\n• Start with small changes, build big habits\n• Remember: you're creating a better world\n\n📞 **Stay Connected:**\n• Website: ${KNOWLEDGE_BASE.company_info.contact.website}\n• WhatsApp: ${KNOWLEDGE_BASE.company_info.contact.phone}\n• Email: ${KNOWLEDGE_BASE.company_info.contact.email}\n\n🌱 **Come back anytime for:**\n• New product discoveries\n• Advanced eco-tips\n• Personalized sustainability plans\n• Community eco-challenges\n\n**Together, we're building a sustainable future!** ✨`;
-    }
-
-    // Enhanced default response with contextual awareness and smart suggestions
-    const contextualSuggestions = [
-      `"What's your bestselling ${understanding.entities.category || 'product'} for ${understanding.entities.lifestyle_context || 'daily use'}?"`,
-      `"Show me eco-friendly options under ₹${understanding.entities.price || userProfile.budget || 300}"`,
-      `"I need sustainable solutions for ${understanding.entities.lifestyle_context || 'my lifestyle'}"`,
-      `"Compare your top 3 ${understanding.entities.category || 'products'} and help me decide"`,
-      "\"What's the environmental impact of switching to bamboo products?\"",
-      "\"Create a sustainable starter kit for someone new to eco-living\""
-    ];
-
-    const confidence = understanding.confidence;
-    let responsePrefix = '';
+    // Default response with intelligent suggestions
+    const defaultRecommendations = getIntelligentRecommendations(input, understanding, 3);
+    const defaultList = defaultRecommendations.map((p, index) => 
+      `${index + 1}️⃣ ${p.image} **${p.name}** - ₹${p.price}\n   ⭐ ${p.rating}/5 • ${p.benefits[0]}`
+    ).join('\n\n');
     
-    if (confidence < 30) {
-      responsePrefix = "I want to make sure I understand you correctly! 🤔\n\n";
-    } else if (confidence > 70) {
-      responsePrefix = `I understand you're interested in ${understanding.intent === 'general' ? 'sustainable solutions' : understanding.intent.replace('_', ' ')}! 🌟\n\n`;
-    }
+    return `🤔 I'm not sure I fully understood "${input}", but I'm here to help! Here's what I can suggest:\n\n${defaultList}\n\n💬 **Try these for better results:**\n• Be specific: "I need eco-friendly kitchen items under ₹200"\n• Ask for comparisons: "Compare bamboo vs steel products"\n• Explore tips: "Give me eco-friendly tips for beginners"\n• Ask about us: "Who is Nisarg Maitri?"\n\nWhat would you like to explore? I'm all ears... or rather, all text! 😄`;
+  }, [userProfile, conversationContext, products]);
 
-    return `${responsePrefix}🎯 **I'm here to help with anything eco-friendly!**\n\n🧠 **My AI capabilities include:**\n• Understanding complex, natural questions\n• Providing personalized product recommendations\n• Analyzing environmental impact\n• Comparing products across multiple dimensions\n• Learning your preferences over time\n• Answering detailed sustainability questions\n\n💬 **Try asking me naturally:**\n${contextualSuggestions.slice(0, 4).map(s => `• ${s}`).join('\n')}\n\n🌟 **Popular conversation starters:**\n• "I want to reduce plastic waste in my [area] but have budget constraints"\n• "What's better for the environment - bamboo or steel products?"\n• "Create a sustainable routine for a busy professional"\n• "Help me convince my family to switch to eco-friendly products"\n• "What's the ROI of switching to sustainable products?"\n\n✨ **Advanced features:**\n🔍 Context-aware conversations\n📊 Environmental impact calculations\n💰 Budget optimization strategies\n🎯 Lifestyle-based recommendations\n\n**What aspect of sustainable living interests you most?** I'm excited to help! 😊`;
+  // Handle message sending with advanced processing
+  const handleSendMessage = useCallback(async () => {
+    if (!inputMessage.trim()) return;
 
-  }, [products, userName, userProfile, conversationContext, aiState]);
-
-  const handleSendMessage = useCallback(() => {
-    if (inputMessage.trim() === '' || isTyping) return;
-
-    const userMessage = {
-      id: Date.now(),
-      text: inputMessage.trim(),
+    const newMessage = {
+      id: messages.length + 1,
+      text: inputMessage,
       isBot: false,
       timestamp: new Date(),
     };
 
-    setMessages(prev => [...prev, userMessage]);
-    addBotMessage(getAdvancedBotResponse(inputMessage.trim()), 1400);
+    setMessages(prev => [...prev, newMessage]);
     setInputMessage('');
-  }, [inputMessage, isTyping, getAdvancedBotResponse]);
-
-  const addBotMessage = useCallback((text, delay = 1400) => {
     setIsTyping(true);
-    setTimeout(() => {
-      const botMessage = {
-        id: Date.now(),
-        text,
+
+    // Simulate typing delay based on complexity
+    const complexity = calculateComplexity(inputMessage);
+    const typingDelay = Math.min(1500 + complexity * 50, 3000);
+
+    setTimeout(async () => {
+      const botResponseText = getAdvancedBotResponse(inputMessage);
+      const botResponse = {
+        id: messages.length + 2,
+        text: botResponseText,
         isBot: true,
         timestamp: new Date(),
       };
-      setMessages(prev => [...prev, botMessage]);
+      setMessages(prev => [...prev, botResponse]);
       setIsTyping(false);
-    }, delay);
-  }, []);
+    }, typingDelay);
+  }, [inputMessage, messages, getAdvancedBotResponse]);
 
-  const handleQuickReply = useCallback((reply) => {
-    if (isTyping) return;
-    
-    const userMessage = {
-      id: Date.now(),
-      text: reply.text,
-      isBot: false,
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    addBotMessage(getAdvancedBotResponse(reply.keyword), 1200);
-  }, [isTyping, getAdvancedBotResponse]);
-
-  const handleKeyPress = useCallback((e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
-      e.preventDefault();
-      handleSendMessage();
-    }
-  }, [handleSendMessage]);
-
-  // Dynamic quick replies based on AI understanding and context
-  const getIntelligentQuickReplies = () => {
-    const contextualReplies = [];
-    
-    // Add contextual replies based on conversation state
-    if (!userName) {
-      contextualReplies.push({ text: '👋 Hi, I\'m New!', keyword: 'hi I am new to eco-friendly products', priority: 1 });
-    }
-    
-    if (conversationContext.conversationDepth > 3 && !userProfile.budget) {
-      contextualReplies.push({ text: '💰 Set Budget', keyword: 'my budget is around 200 rupees', priority: 1 });
-    }
-    
-    if (conversationContext.lastTopic === 'products') {
-      contextualReplies.push({ text: '🆚 Compare These', keyword: 'compare these products for me', priority: 1 });
-    }
-    
-    // Base intelligent replies
-    const baseReplies = [
-      { text: '🛍️ Smart Products', keyword: 'show me your best eco-friendly products', priority: 1 },
-      { text: '🌱 Eco Tips', keyword: 'give me personalized eco tips', priority: 1 },
-      { text: '⭐ Bestsellers', keyword: 'what are your most popular products', priority: 2 },
-      { text: '🎯 For My Lifestyle', keyword: 'recommend products for my lifestyle', priority: 1 },
-      { text: '💡 Expert Advice', keyword: 'I need expert advice on sustainable living', priority: 2 },
-      { text: '🧮 Impact Calculator', keyword: 'calculate my environmental impact', priority: 3 },
-    ];
-
-    return [...contextualReplies, ...baseReplies]
-      .sort((a, b) => a.priority - b.priority)
-      .slice(0, 6);
+  // Handle quick reply buttons
+  const handleQuickReply = (reply) => {
+    setInputMessage(reply);
+    handleSendMessage();
   };
 
+  // Auto-scroll to latest message
   useEffect(() => {
     messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
   }, [messages]);
 
-  const clearChat = useCallback(() => {
-    setMessages([
-      {
-        id: 1,
-        text: "🌟 **Fresh Intelligent Conversation Started!**\n\nHi! I'm EcoBot with advanced AI and natural language understanding! 🧠\n\n✨ **Enhanced Capabilities:**\n🎯 **Complex Query Processing** - Understand nuanced requests\n💬 **Natural Conversation** - Talk like you would to a friend\n🧠 **Context Memory** - Remember our entire conversation\n📊 **Smart Analytics** - Provide data-driven insights\n🌱 **Personalized Learning** - Adapt to your preferences\n⚡ **Real-time Understanding** - Process complex requests instantly\n\n**Try me with sophisticated questions like:**\n\"I'm a college student with ₹300 budget who wants to start sustainable living but doesn't know where to begin, and I'm specifically interested in reducing plastic waste in my daily routine while also considering the long-term cost benefits\"\n\n**What complex eco-challenge can I help you solve today?**",
-        isBot: true,
-        timestamp: new Date(),
-      },
-    ]);
-    
-    // Reset all contexts and states
+  // Handle Enter key press
+  const handleKeyPress = (e) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSendMessage();
+    }
+  };
+
+  // Clear chat functionality
+  const clearChat = () => {
+    setMessages([{
+      id: 1,
+      text: "Namaste! 🙏 I'm EcoBot, your advanced AI companion from Nisarg Maitri! 🌱\n\n🧠 **I understand natural conversation and can help you with:**\n🛍️ Intelligent Product Discovery & Recommendations\n🌱 Personalized Eco-Living Guidance & Tips\n💡 Detailed Product Analysis & Comparisons\n📊 Environmental Impact Calculations\n🎯 Custom Solutions for Your Lifestyle\n❓ Expert Q&A on Sustainable Living\n💬 Natural Language Understanding\n\n**Talk to me naturally!** I understand context, remember our conversation, and learn your preferences. Try asking complex questions like:\n• \"I want to reduce plastic in my morning routine but have a budget of ₹300\"\n• \"What's the most eco-friendly option for women's health?\"\n• \"Compare your bestsellers and tell me which is best for office use\"\n\n**What's on your mind today?** 😊",
+      isBot: true,
+      timestamp: new Date(),
+    }]);
     setConversationContext({
       lastTopic: '',
       currentFlow: '',
@@ -1304,7 +1326,6 @@ const EnhancedChatbot = () => {
       preferences_learned: [],
       session_products_viewed: []
     });
-    
     setAiState({
       understanding_level: 0,
       confidence_score: 0,
@@ -1312,254 +1333,147 @@ const EnhancedChatbot = () => {
       personalization_data: {},
       response_quality: 0
     });
-  }, []);
+  };
+
+  // Toggle chat window
+  const toggleChat = () => {
+    setIsOpen(!isOpen);
+  };
 
   return (
-    <div className="fixed bottom-4 right-4 z-50">
+    <div className="fixed bottom-6 right-6 z-50 font-sans">
+      {/* Chat Toggle Button */}
+      <button
+        onClick={toggleChat}
+        className={`rounded-full p-4 shadow-lg transition-all duration-300 flex items-center justify-center
+          ${isOpen ? 'bg-red-500 hover:bg-red-600' : 'bg-green-500 hover:bg-green-600'}`}
+        title={isOpen ? 'Close Chat' : 'Open Chat'}
+      >
+        {isOpen ? (
+          <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        ) : (
+          <NisargBotLogo size={32} className="text-white" />
+        )}
+      </button>
+
+      {/* Chat Window */}
       {isOpen && (
-        <div className="bg-white rounded-2xl shadow-2xl w-80 sm:w-96 h-[600px] mb-4 flex flex-col border border-gray-200 overflow-hidden">
-          {/* Advanced Header with AI indicators */}
-          <div className="bg-gradient-to-r from-[#1A3329] to-[#2F6844] text-white p-4 flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-green-400 rounded-full flex items-center justify-center relative">
-                <span className="text-lg animate-pulse">🧠</span>
-                <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-400 rounded-full flex items-center justify-center">
-                  <span className="text-xs font-bold">AI</span>
-                </div>
-              </div>
+        <div className="mt-4 w-96 bg-white rounded-lg shadow-xl border border-gray-200 flex flex-col animate-slide-up">
+          {/* Header */}
+          <div className="bg-gradient-to-r from-green-400 to-blue-500 p-4 rounded-t-lg flex items-center justify-between">
+            <div className="flex items-center space-x-2">
+              <NisargBotLogo size={40} className="text-white" />
               <div>
-                <h3 className="font-semibold flex items-center">
-                  EcoBot Advanced
-                  {userName && <span className="ml-2 text-xs bg-green-400 bg-opacity-20 px-2 py-1 rounded-full">Hi {userName}!</span>}
-                </h3>
-                <p className="text-xs text-green-100 flex items-center">
-                  <span className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></span>
-                  Smart • Contextual • Learning
-                  {aiState.understanding_level > 50 && <span className="ml-2">🎯</span>}
-                </p>
+                <h3 className="text-white font-bold text-lg">EcoBot</h3>
+                <p className="text-white text-sm opacity-80">Your Sustainable Living Assistant</p>
               </div>
             </div>
-            <div className="flex space-x-2">
-              <div className="text-xs text-green-100 text-right">
-                <div>AI: {Math.floor(aiState.understanding_level)}%</div>
-                <div>Context: {conversationContext.topics_discussed.length}</div>
-              </div>
-              <button
-                onClick={clearChat}
-                className="text-white hover:text-green-200 p-2 rounded-lg hover:bg-white hover:bg-opacity-10 transition-colors"
-                title="New intelligent conversation"
-              >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-                </svg>
-              </button>
-              <button
-                onClick={() => setIsOpen(false)}
-                className="text-white hover:text-green-200 p-2 rounded-lg hover:bg-white hover:bg-opacity-10 transition-colors"
-              >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-                </svg>
-              </button>
-            </div>
+            <button
+              onClick={clearChat}
+              className="text-white hover:text-gray-200 transition-colors"
+              title="Clear Chat"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="currentColor" yardviewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M4 4h16v16H4z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 6l12 12M6 18L18 6" />
+              </svg>
+            </button>
           </div>
 
-          {/* Enhanced Messages with advanced formatting */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-gray-50 to-white">
+          {/* Chat Messages */}
+          <div className="flex-1 p-4 overflow-y-auto max-h-96 bg-gray-50">
             {messages.map((message) => (
-              <div key={message.id} className={`flex ${message.isBot ? 'justify-start' : 'justify-end'}`}>
-                <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${
-                  message.isBot 
-                    ? 'bg-white text-gray-800 border border-gray-100 rounded-bl-sm' 
-                    : 'bg-gradient-to-r from-[#2F6844] to-[#1A3329] text-white rounded-br-sm'
-                }`}>
-                  <div className="whitespace-pre-wrap break-words">{message.text}</div>
-                  <div className="text-xs opacity-70 mt-2 pt-1 border-t border-gray-200 border-opacity-30 flex justify-between">
-                    <span>{new Date(message.timestamp).toLocaleTimeString('en-US', { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    })}</span>
-                    {message.isBot && aiState.confidence_score > 0 && (
-                      <span className="flex items-center">
-                        🎯 {Math.floor(aiState.confidence_score)}%
-                      </span>
-                    )}
-                  </div>
+              <div
+                key={message.id}
+                className={`mb-4 flex ${message.isBot ? 'justify-start' : 'justify-end'}`}
+              >
+                <div
+                  className={`max-w-[80%] p-3 rounded-lg shadow-sm transition-all duration-200
+                    ${message.isBot
+                      ? 'bg-green-100 text-gray-800 border-l-4 border-green-500'
+                      : 'bg-blue-100 text-gray-800 border-r-4 border-blue-500'
+                    }`}
+                >
+                  {message.isBot && (
+                    <div className="flex items-center space-x-2 mb-1">
+                      <SimpleNisargLogo size={20} className="text-green-500" />
+                      <span className="text-xs font-semibold text-green-600">EcoBot</span>
+                    </div>
+                  )}
+                  <p className="text-sm whitespace-pre-wrap">{message.text}</p>
+                  <span className="text-xs text-gray-500 block mt-1">
+                    {message.timestamp.toLocaleTimeString()}
+                  </span>
                 </div>
               </div>
             ))}
-            
-            {/* Advanced typing indicator with AI processing */}
             {isTyping && (
-              <div className="flex justify-start">
-                <div className="bg-white px-4 py-3 rounded-2xl rounded-bl-sm shadow-sm border border-gray-100">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-blue-100 rounded-full flex items-center justify-center">
-                      <span className="text-sm animate-pulse">🧠</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-xs text-gray-500 mb-1">Advanced AI processing your request...</span>
-                      <div className="flex space-x-1">
-                        {[0, 1, 2, 3, 4].map(i => (
-                          <div
-                            key={i}
-                            className="w-2 h-2 bg-[#2F6844] rounded-full animate-bounce"
-                            style={{ animationDelay: `${i * 0.1}s` }}
-                          ></div>
-                        ))}
-                      </div>
-                    </div>
-                  </div>
-                </div>
+              <div className="flex items-center space-x-2 mb-4">
+                <SimpleNisargLogo size={20} className="text-green-500 animate-pulse" />
+                <span className="text-sm text-gray-500 italic">EcoBot is typing...</span>
               </div>
             )}
             <div ref={messagesEndRef} />
           </div>
 
-          {/* Intelligent Quick Replies */}
-          <div className="px-4 py-3 border-t bg-gradient-to-r from-gray-50 to-white">
-            <p className="text-xs text-gray-600 font-medium mb-3 flex items-center">
-              <span className="mr-2">🧠</span>
-              {userName ? `Intelligent suggestions for ${userName}:` : 'Smart AI-Powered Actions:'}
-              {aiState.understanding_level > 30 && <span className="ml-2">🎯 Learning...</span>}
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              {getIntelligentQuickReplies().map((reply, index) => (
+          {/* Quick Reply Buttons */}
+          <div className="p-4 bg-gray-100 border-t border-gray-200">
+            <div className="flex flex-wrap gap-2 mb-2">
+              {[
+                'Show me eco-friendly products',
+                'What are your bestsellers?',
+                'Eco tips for beginners',
+                'Compare bamboo vs steel',
+              ].map((reply, index) => (
                 <button
                   key={index}
                   onClick={() => handleQuickReply(reply)}
-                  className="text-xs bg-white hover:bg-blue-50 hover:border-[#2F6844] hover:shadow-md px-3 py-2 rounded-lg border border-gray-200 transition-all disabled:opacity-50 group transform hover:scale-105"
-                  disabled={isTyping}
+                  className="px-3 py-1 bg-green-500 text-white rounded-full text-sm hover:bg-green-600 transition-colors"
                 >
-                  <span className="font-medium text-gray-700 group-hover:text-[#2F6844]">
-                    {reply.text}
-                  </span>
+                  {reply}
                 </button>
               ))}
             </div>
-          </div>
 
-          {/* Advanced Input Area with AI assistance indicators */}
-          <div className="p-4 border-t bg-white">
-            <div className="flex space-x-2">
-              <input
-                type="text"
+            {/* Input Area */}
+            <div className="flex items-center space-x-2">
+              <textarea
                 value={inputMessage}
                 onChange={(e) => setInputMessage(e.target.value)}
                 onKeyPress={handleKeyPress}
-                placeholder={
-                  userName 
-                    ? `Ask me anything naturally, ${userName}...` 
-                    : "Ask me anything in natural language..."
-                }
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2F6844] focus:border-transparent text-sm bg-gray-50 focus:bg-white transition-all"
-                disabled={isTyping}
-                maxLength={500}
+                placeholder="Type your message..."
+                className="flex-1 p-2 rounded-lg border border-gray-300 focus:outline-none focus:ring-2 focus:ring-green-500 resize-none text-sm"
+                rows="2"
               />
               <button
                 onClick={handleSendMessage}
-                className="bg-gradient-to-r from-[#2F6844] to-[#1A3329] text-white px-6 py-3 rounded-xl hover:from-[#1A3329] hover:to-[#2F6844] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105"
-                disabled={isTyping || !inputMessage.trim()}
+                className="p-2 bg-green-500 text-white rounded-full hover:bg-green-600 transition-colors"
+                disabled={!inputMessage.trim()}
               >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
                 </svg>
               </button>
             </div>
-            <div className="flex justify-between text-xs text-gray-500 mt-2">
-              <span className="flex items-center">
-                <span className="mr-1">🧠</span>
-                {userName ? `Advanced AI for ${userName}` : 'Natural language understanding'}
-              </span>
-              <span className="flex items-center">
-                💡 Try complex questions • Enter ↵
-              </span>
+          </div>
+
+          {/* Session Statistics (Development Mode) */}
+          {process.env.NODE_ENV === 'development' && (
+            <div className="p-2 bg-gray-200 text-xs text-gray-600 border-t border-gray-300">
+              <p>Conversation Depth: {conversationContext.conversationDepth}</p>
+              <p>AI Confidence: {aiState.confidence_score.toFixed(1)}%</p>
+              <p>User Intent: {conversationContext.userIntent || 'None'}</p>
+              <p>Sentiment: {conversationContext.sentiment}</p>
+              <p>Topics Discussed: {conversationContext.topics_discussed.join(', ')}</p>
             </div>
-            
-            {/* AI Processing Indicator */}
-            {aiState.understanding_level > 0 && (
-              <div className="mt-2 bg-blue-50 rounded-lg p-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="text-blue-600 font-medium">🧠 AI Learning Progress:</span>
-                  <span className="text-blue-800">{Math.floor(aiState.understanding_level)}%</span>
-                </div>
-                <div className="w-full bg-blue-200 rounded-full h-1.5 mt-1">
-                  <div 
-                    className="bg-blue-600 h-1.5 rounded-full transition-all duration-300" 
-                    style={{ width: `${aiState.understanding_level}%` }}
-                  ></div>
-                </div>
-              </div>
-            )}
-          </div>
-        </div>
-      )}
-
-      {/* Enhanced Chat Button with AI indicator */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="bg-gradient-to-r from-[#1A3329] to-[#2F6844] text-white w-16 h-16 rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 flex items-center justify-center group hover:scale-110 relative overflow-hidden"
-      >
-        <div className="absolute inset-0 bg-gradient-to-r from-blue-400 to-green-600 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
-        {isOpen ? (
-          <svg className="h-6 w-6 relative z-10 transform group-hover:rotate-90 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        ) : (
-          <div className="relative z-10">
-            <div className="text-2xl animate-bounce">🧠</div>
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-blue-400 rounded-full animate-pulse shadow-lg flex items-center justify-center">
-              <span className="text-xs font-bold">AI</span>
-            </div>
-            {/* AI Activity Ring */}
-            {aiState.understanding_level > 30 && (
-              <div className="absolute inset-0 border-2 border-green-400 rounded-full animate-spin opacity-30"></div>
-            )}
-          </div>
-        )}
-      </button>
-
-      {/* Enhanced Tooltip with AI features */}
-      {!isOpen && (
-        <div className="absolute bottom-20 right-0 bg-gray-900 text-white px-4 py-3 rounded-xl text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none shadow-2xl transform group-hover:translate-y-1 max-w-xs">
-          <div className="flex items-center space-x-2">
-            <span className="animate-bounce">🧠</span>
-            <span className="font-medium">Advanced AI Assistant!</span>
-            <span className="animate-pulse">✨</span>
-          </div>
-          <div className="text-xs text-gray-300 mt-1 text-center">
-            {userName ? (
-              `Hi ${userName}! I remember our chats!`
-            ) : (
-              <div>
-                <div>🎯 Natural language understanding</div>
-                <div>🧠 Context awareness & learning</div>
-                <div>🌱 Personalized eco-guidance</div>
-              </div>
-            )}
-          </div>
-          <div className="absolute top-full right-6 w-3 h-3 bg-gray-900 transform rotate-45 -mt-1.5"></div>
-        </div>
-      )}
-
-      {/* Background AI Processing Indicator */}
-      {isTyping && (
-        <div className="absolute top-2 right-2 w-3 h-3 bg-blue-400 rounded-full animate-ping"></div>
-      )}
-
-      {/* Session Statistics (Development Mode) */}
-      {process.env.NODE_ENV === 'development' && (
-        <div className="absolute top-20 right-0 bg-black bg-opacity-80 text-white p-2 rounded-l text-xs">
-          <div>AI Level: {Math.floor(aiState.understanding_level)}%</div>
-          <div>Confidence: {Math.floor(aiState.confidence_score)}%</div>
-          <div>Messages: {messages.length}</div>
-          <div>Context: {conversationContext.topics_discussed.length}</div>
+          )}
         </div>
       )}
     </div>
   );
 };
 
+
 export default EnhancedChatbot;
-
-

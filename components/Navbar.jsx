@@ -2,6 +2,13 @@ import React, { useState, useEffect } from "react";
 import { Link, useLocation, useNavigate } from "react-router-dom";
 import axios from "axios";
 
+// Use relative URL in production for same-domain deployment
+const getApiUrl = () => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  if (import.meta.env.PROD) return "";
+  return "http://localhost:5001";
+};
+
 // Logo Component
 const GreenoLogo = () => (
   <div className="transition-transform duration-300 hover:scale-105">
@@ -12,7 +19,7 @@ const GreenoLogo = () => (
 const Navbar = () => {
   const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
   const [isAdmin, setIsAdmin] = useState(
-    localStorage.getItem("isAdmin") === "true"
+    localStorage.getItem("isAdmin") === "true",
   ); // Initial state from localStorage
   const location = useLocation();
   const navigate = useNavigate();
@@ -31,10 +38,10 @@ const Navbar = () => {
     const checkAdminStatus = async () => {
       try {
         const response = await axios.get(
-          "https://backendforshop.onrender.com/api/auth/check-admin",
+          `${getApiUrl()}/api/auth/check-admin`,
           {
             headers: { Authorization: `Bearer ${token}` },
-          }
+          },
         );
         const adminStatus = response.data.isAdmin;
         setIsAdmin(adminStatus);

@@ -1,7 +1,14 @@
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom'; // Import useNavigate
-import Navbar from './Navbar'; // Import the Navbar component
+import { useNavigate } from 'react-router-dom';
+import axios from 'axios';
+import Navbar from './Navbar';
 import Footer from './Footer';
+
+const getApiUrl = () => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  if (import.meta.env.PROD) return '';
+  return 'http://localhost:5001';
+};
 
 // Product Card Component
 const ProductCard = ({ product, onAddToCart }) => {
@@ -235,105 +242,42 @@ const ShopPage = () => {
   }, []);
 
   useEffect(() => {
-    const productData = [
-      {
-        id: 1,
-        name: 'Bamboo Toothbrush',
-        description: 'Eco-friendly bamboo toothbrush with soft bristles, perfect for everyday use.',
-        price: 40,
-        image: '/toothbrush.png',
-        category: 'Bamboo',
-        tag: 'Bestseller'
-      },
-      {
-        id: 2,
-        name: 'Bamboo Tongue Cleaner',
-        description: 'Natural bamboo tongue cleaner for improved oral hygiene.',
-        price: 40,
-        image: '/tongue_cleaner.png',
-        category: 'Bamboo'
-      },
-      {
-        id: 3,
-        name: 'Bamboo Razor',
-        description: 'Sustainable bamboo razor with replaceable stainless steel blades.',
-        price: 199,
-        image: '/BAmboo (2).png',
-        category: 'Bamboo'
-      },
-      {
-        id: 4,
-        name: 'Menstrual Cup',
-        description: 'Reusable silicone menstrual cup, eco-friendly alternative to disposable products.',
-        price: 299,
-        image: '/cup.png',
-        category: 'Menstrual',
-        tag: 'Popular'
-      },
-      {
-        id: 5,
-        name: 'Bamboo Straws (each of 40)',
-        description: 'Reusable bamboo drinking straws.',
-        price: 40,
-        image: '/BAmboo (1).png',
-        category: 'Bamboo'
-      },
-      {
-        id: 6,
-        name: 'Collapsible Steel Cup',
-        description: 'Stainless steel Portable cup (75 ml) for hot and cold beverages . ',
-        price: 199,
-        image: '/tumbler.png',
-        category: 'Steel'
-      },
-      {
-        id: 7,
-        name: 'Reusable Makeup Remover Pads(each of 69 rs)',
-        description: 'Reusable makeup remover pads .',
-        price: 69 ,
-        image: '/makeupremove.jpeg',
-        category: 'Zero Waste'
-      },
-      {
-        id: 8,
-        name: 'Steel Water Bottle',
-        description: 'Stainless steel water bottle with leak-proof lid, 750ml capacity.',
-        price: 199,
-        image: '/Untitled design (35).png',
-        category: 'Steel',
-        tag: 'New'
-      },
-      {
-        id: 9,
-        name: 'Handmade Customized Muffler',
-        description: 'Handcrafted muffler made from Wollen, can be customized.',
-        price: 799,
-        image: '/mufflers.png',
-        category: 'Zero Waste'
-      },
-      {
-        id: 10,
-        name: 'Zero Waste Cutlery Set',
-        description: 'Portable stainless steel cutlery set with fork, spoon , Steel straw  , straw cleaner and bamboo tooth brush neatly packed in a durable cotton pouch.',
-        price: 199,
-        image: '/cutlery_set.png',
-        category: 'Zero Waste'
-      },
-      {
-        id: 11,
-        name: 'Steel Water Bottle',
-        description: 'Stainless steel water bottle with leak-proof lid, (1 litre) capacity.',
-        price: 249,
-        image: '/Untitled design (35).png',
-        category: 'Steel',
-        tag: 'New'
-      },
-    ];
-    
-    setTimeout(() => {
-      setProducts(productData);
-      setLoading(false);
-    }, 800);
+    const fetchProducts = async () => {
+      try {
+        const res = await axios.get(`${getApiUrl()}/api/products`);
+        const mapped = res.data.map((p) => ({
+          id: p._id,
+          name: p.name,
+          description: p.description,
+          price: p.price,
+          comparePrice: p.comparePrice || 0,
+          image: p.image,
+          category: p.category,
+          tag: p.tag || '',
+          stock: p.stock,
+        }));
+        setProducts(mapped);
+      } catch (err) {
+        console.error('Failed to fetch products:', err);
+        // fallback hardcoded products if API is down
+        setProducts([
+          { id: 1, name: 'Bamboo Toothbrush', description: 'Eco-friendly bamboo toothbrush with soft bristles, perfect for everyday use.', price: 40, image: '/toothbrush.png', category: 'Bamboo', tag: 'Bestseller' },
+          { id: 2, name: 'Bamboo Tongue Cleaner', description: 'Natural bamboo tongue cleaner for improved oral hygiene.', price: 40, image: '/tongue_cleaner.png', category: 'Bamboo' },
+          { id: 3, name: 'Bamboo Razor', description: 'Sustainable bamboo razor with replaceable stainless steel blades.', price: 199, image: '/BAmboo (2).png', category: 'Bamboo' },
+          { id: 4, name: 'Menstrual Cup', description: 'Reusable silicone menstrual cup, eco-friendly alternative to disposable products.', price: 299, image: '/cup.png', category: 'Menstrual', tag: 'Popular' },
+          { id: 5, name: 'Bamboo Straws (each of 40)', description: 'Reusable bamboo drinking straws.', price: 40, image: '/BAmboo (1).png', category: 'Bamboo' },
+          { id: 6, name: 'Collapsible Steel Cup', description: 'Stainless steel Portable cup (75 ml) for hot and cold beverages.', price: 199, image: '/tumbler.png', category: 'Steel' },
+          { id: 7, name: 'Reusable Makeup Remover Pads(each of 69 rs)', description: 'Reusable makeup remover pads.', price: 69, image: '/makeupremove.jpeg', category: 'Zero Waste' },
+          { id: 8, name: 'Steel Water Bottle', description: 'Stainless steel water bottle with leak-proof lid, 750ml capacity.', price: 199, image: '/Untitled design (35).png', category: 'Steel', tag: 'New' },
+          { id: 9, name: 'Handmade Customized Muffler', description: 'Handcrafted muffler made from Wollen, can be customized.', price: 799, image: '/mufflers.png', category: 'Zero Waste' },
+          { id: 10, name: 'Zero Waste Cutlery Set', description: 'Portable stainless steel cutlery set with fork, spoon, Steel straw, straw cleaner and bamboo tooth brush neatly packed in a durable cotton pouch.', price: 199, image: '/cutlery_set.png', category: 'Zero Waste' },
+          { id: 11, name: 'Steel Water Bottle', description: 'Stainless steel water bottle with leak-proof lid, (1 litre) capacity.', price: 249, image: '/Untitled design (35).png', category: 'Steel', tag: 'New' },
+        ]);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchProducts();
   }, []);
   
   const addToCart = (product) => {

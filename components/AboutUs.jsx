@@ -20,12 +20,10 @@ const Milestone = ({ year, title, description }) => (
   </div>
 );
 
-// Featured Video component
-const FeaturedVideo = ({ title, description, videoId, thumbnail, likes, views }) => {
+// Featured Video component - Professional Design
+const FeaturedVideo = ({ title, description, videoId, thumbnail, likes, views, duration }) => {
   const [playing, setPlaying] = useState(false);
-  const [hovering, setHovering] = useState(false);
 
-  // Robust video ID cleaning
   const cleanVideoId = (id) => {
     try {
       return id.split('?')[0].split('/').pop() || id;
@@ -35,92 +33,141 @@ const FeaturedVideo = ({ title, description, videoId, thumbnail, likes, views })
   };
 
   return (
-    <div 
-      className="rounded-xl overflow-hidden shadow-lg bg-white transition-all duration-300 hover:shadow-xl"
-      onMouseEnter={() => setHovering(true)}
-      onMouseLeave={() => setHovering(false)}
-    >
-      <div className="relative aspect-video bg-gray-900">
+    <div className="group relative rounded-2xl overflow-hidden bg-gray-900 shadow-2xl">
+      <div className="relative aspect-video">
         {playing ? (
           <iframe
-            src={`https://www.youtube.com/embed/${cleanVideoId(videoId)}?autoplay=1`}
+            src={`https://www.youtube.com/embed/${cleanVideoId(videoId)}?autoplay=1&rel=0`}
             title={title}
             frameBorder="0"
             allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
             allowFullScreen
             className="absolute inset-0 w-full h-full"
-          ></iframe>
+          />
         ) : (
           <>
             <img 
-              src={thumbnail || 'https://via.placeholder.com/640x360?text=Video+Thumbnail'} 
+              src={thumbnail || `https://img.youtube.com/vi/${cleanVideoId(videoId)}/maxresdefault.jpg`}
               alt={title}
-              className="absolute inset-0 w-full h-full object-cover"
-              onError={(e) => { e.target.src = 'https://via.placeholder.com/640x360?text=Video+Thumbnail'; }}
+              className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-105"
+              onError={(e) => { e.target.src = `https://img.youtube.com/vi/${cleanVideoId(videoId)}/hqdefault.jpg`; }}
             />
-            <div className={`absolute inset-0 bg-[#1D3B30] transition-all duration-500 ${hovering ? 'opacity-2' : 'opacity-90'}`}></div>
+            {/* Gradient overlay */}
+            <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent" />
+            
+            {/* Play button */}
             <button
               onClick={() => setPlaying(true)}
-              className="absolute inset-0 flex flex-col items-center justify-center"
+              className="absolute inset-0 flex items-center justify-center"
             >
-              <div className="bg-white text-[#1D3B30] w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 rounded-full flex items-center justify-center hover:bg-gray-100 transition-all duration-300 transform hover:scale-110 shadow-lg mb-2">
-                <Play size={16} fill="#1D3B30" className="sm:w-5 md:w-6" />
+              <div className="w-16 h-16 sm:w-20 sm:h-20 rounded-full bg-white/95 flex items-center justify-center shadow-2xl transition-all duration-300 group-hover:scale-110 group-hover:bg-white">
+                <Play size={28} fill="#1A3329" className="text-[#1A3329] ml-1" />
               </div>
-              <h3 className="text-white text-sm sm:text-base md:text-lg font-bold mt-2 text-center px-4">{title}</h3>
-              <span className="bg-white bg-opacity-90 text-[#1D3B30] px-2 py-1 rounded-md text-xs font-medium shadow-md mt-2">
-                Watch Now
-              </span>
             </button>
+
+            {/* Duration badge */}
+            {duration && (
+              <span className="absolute top-4 right-4 bg-black/70 backdrop-blur-sm text-white text-xs font-medium px-2.5 py-1 rounded-md">
+                {duration}
+              </span>
+            )}
+
+            {/* Video info overlay */}
+            <div className="absolute bottom-0 left-0 right-0 p-4 sm:p-6">
+              <h3 className="text-white text-lg sm:text-xl font-bold mb-2 line-clamp-2">{title}</h3>
+              {description && (
+                <p className="text-white/70 text-sm line-clamp-2 mb-3">{description}</p>
+              )}
+              <div className="flex items-center gap-4 text-white/60 text-sm">
+                <span className="flex items-center gap-1.5">
+                  <Eye size={14} />
+                  {views} views
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <Heart size={14} />
+                  {likes}
+                </span>
+              </div>
+            </div>
           </>
         )}
-      </div>
-      <div className="p-3 sm:p-4">
-        <div className="flex items-center justify-between mb-2">
-          <h3 className="text-sm sm:text-base md:text-lg font-bold text-[#1D3B30] line-clamp-1">{title}</h3>
-          <span className="text-xs text-gray-500 flex items-center whitespace-nowrap ml-2">
-            <Clock size={10} className="mr-1" /> 10 min:24
-          </span>
-        </div>
-        <p className="text-xs sm:text-sm text-gray-700 line-clamp-2">{description}</p>
-        <div className="mt-2 sm:mt-3 flex justify-between items-center">
-          <span className="text-xs font-medium text-[#2A5446] flex items-center">
-            <Heart size={10} className="mr-1" /> {likes}
-          </span>
-          <span className="text-xs font-medium text-[#2A5446] flex items-center">
-            <Eye size={10} className="mr-1" /> {views} Views
-          </span>
-        </div>
       </div>
     </div>
   );
 };
 
-// Video Selection Item component
-const VideoSelectionItem = ({ video, isActive, onClick }) => (
-  <div 
-    className={`cursor-pointer rounded-lg overflow-hidden transition-all duration-300 p-2 sm:p-3 flex items-center ${
-      isActive 
-        ? 'bg-[#1D3B30] text-white' 
-        : 'bg-white text-gray-700 hover:bg-gray-100'
-    }`}
-    onClick={onClick}
-  >
-    <div className={`w-6 h-6 sm:w-8 sm:h-8 md:w-10 md:h-10 rounded-full flex items-center justify-center mr-2 sm:mr-3 ${
-      isActive ? 'bg-white text-[#1D3B30]' : 'bg-[#E6F0ED] text-[#1D3B30]'
-    }`}>
-      <Play size={12} className="sm:w-3 md:w-4" />
+// Video Card component for the playlist
+const VideoCard = ({ video, isActive, onClick, index }) => {
+  const [imgError, setImgError] = useState(false);
+  const thumbUrl = video.thumbnail || `https://img.youtube.com/vi/${video.id}/hqdefault.jpg`;
+  
+  return (
+    <div 
+      className={`group cursor-pointer rounded-xl overflow-hidden transition-all duration-300 ${
+        isActive 
+          ? 'bg-[#1A3329] shadow-lg ring-2 ring-[#1A3329]' 
+          : 'bg-white hover:bg-gray-50 shadow-sm hover:shadow-md'
+      }`}
+      onClick={onClick}
+    >
+      <div className="flex items-center gap-3 p-3">
+        {/* Thumbnail */}
+        <div className="relative flex-shrink-0 w-24 sm:w-28 aspect-video rounded-lg overflow-hidden bg-gradient-to-br from-[#1A3329] to-[#2F6844]">
+          {!imgError ? (
+            <img 
+              src={thumbUrl}
+              alt={video.title}
+              className="absolute inset-0 w-full h-full object-cover"
+              onError={() => setImgError(true)}
+            />
+          ) : (
+            <div className="absolute inset-0 flex items-center justify-center">
+              <Play size={20} className="text-white/60" />
+            </div>
+          )}
+          <div className={`absolute inset-0 flex items-center justify-center transition-all ${isActive ? 'bg-black/40' : 'bg-black/0 group-hover:bg-black/30'}`}>
+            <div className={`w-8 h-8 rounded-full flex items-center justify-center transition-all ${
+              isActive 
+                ? 'bg-white text-[#1A3329] scale-100' 
+                : 'bg-white/90 text-[#1A3329] scale-0 group-hover:scale-100'
+            }`}>
+              <Play size={14} fill="currentColor" className="ml-0.5" />
+            </div>
+          </div>
+          {video.duration && (
+            <span className="absolute bottom-1 right-1 bg-black/80 text-white text-[10px] font-medium px-1.5 py-0.5 rounded">
+              {video.duration}
+            </span>
+          )}
+        </div>
+        
+        {/* Info */}
+        <div className="flex-1 min-w-0 py-1">
+          <h4 className={`font-semibold text-sm leading-snug line-clamp-2 mb-1.5 transition-colors ${
+            isActive ? 'text-white' : 'text-gray-800 group-hover:text-[#1A3329]'
+          }`}>
+            {video.title}
+          </h4>
+          <div className={`flex items-center gap-3 text-xs ${isActive ? 'text-white/60' : 'text-gray-500'}`}>
+            <span className="flex items-center gap-1">
+              <Eye size={12} />
+              {video.views}
+            </span>
+            <span className="flex items-center gap-1">
+              <Heart size={12} />
+              {video.likes}
+            </span>
+          </div>
+        </div>
+
+        {/* Active indicator */}
+        {isActive && (
+          <div className="flex-shrink-0 w-1 h-12 bg-white/30 rounded-full mr-1" />
+        )}
+      </div>
     </div>
-    <div className="flex-1 min-w-0">
-      <h4 className={`font-medium text-xs sm:text-sm truncate ${isActive ? 'text-white' : 'text-[#1D3B30]'}`}>
-        {video.title}
-      </h4>
-      <p className={`text-xs truncate mt-1 ${isActive ? 'text-gray-200' : 'text-gray-500'}`}>
-        {video.description.substring(0, 30)}...
-      </p>
-    </div>
-    {isActive && <ChevronRight size={14} className="ml-2 text-white flex-shrink-0" />}
-  </div>
-);
+  );
+};
 
 
 
@@ -167,27 +214,30 @@ const AboutPage = () => {
   const youtubeVideos = [
     {
       id: "hk_-RwghbrI",
-      title: "video 1",
-      description: "",
-      thumbnail: "https://i.ytimg.com/vi/hk_-RwghbrI/sddefault.jpg",
+      title: "Introduction to Sustainable Living",
+      description: "Learn the basics of sustainable living and how small changes can make a big impact.",
+      thumbnail: "https://img.youtube.com/vi/hk_-RwghbrI/hqdefault.jpg",
       likes: "1.2K",
-      views: "5.6K"
+      views: "5.6K",
+      duration: "10:24"
     },
     {
       id: "a_i11PxPuis",
-      title: "video 2",
-      description: ".",
-      thumbnail: "https://i.ytimg.com/vi/eMRRsl0RTtk/maxresdefault.jpg",
+      title: "Eco-Friendly Product Guide",
+      description: "A comprehensive guide to choosing eco-friendly products for your home.",
+      thumbnail: "https://img.youtube.com/vi/a_i11PxPuis/hqdefault.jpg",
       likes: "850",
-      views: "3.2K"
+      views: "3.2K",
+      duration: "8:15"
     },
     {
       id: "D-4-q8SslnQ",
-      title: "video 3",
-      description: "",
-      thumbnail: "https://i.ytimg.com/vi/R0MVAf_173g/hq720.jpg",
+      title: "Zero Waste Lifestyle Tips",
+      description: "Practical tips to reduce waste and live a more sustainable life.",
+      thumbnail: "https://img.youtube.com/vi/D-4-q8SslnQ/hqdefault.jpg",
       likes: "2.1K",
-      views: "8.9K"
+      views: "8.9K",
+      duration: "12:30"
     }
   ];
 
@@ -477,42 +527,73 @@ const AboutPage = () => {
           </div>
         </section>
 
-        {/* Video Section */}
-        <section id="videos" className="py-6 sm:py-8 md:py-12 bg-[#F5F7F6]">
-          <div className="container mx-auto px-4 sm:px-6">
-            <SectionHeading 
-              title="Youtube Videos" 
-              description="Explore our collection of informative videos on sustainable living practices and environmental conservation."
-            />
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 max-w-5xl mx-auto">
-              <div className="lg:col-span-2">
-                <FeaturedVideo 
-                  title={youtubeVideos[currentVideoIndex].title}
-                  description={youtubeVideos[currentVideoIndex].description}
-                  videoId={youtubeVideos[currentVideoIndex].id}
-                  thumbnail={youtubeVideos[currentVideoIndex].thumbnail}
-                  likes={youtubeVideos[currentVideoIndex].likes}
-                  views={youtubeVideos[currentVideoIndex].views}
-                />
-              </div>
-              <div className="space-y-2 sm:space-y-3">
-                {youtubeVideos.map((video, index) => (
-                  <VideoSelectionItem
-                    key={video.id}
-                    video={video}
-                    isActive={index === currentVideoIndex}
-                    onClick={() => setCurrentVideoIndex(index)}
+        {/* Video Section - Professional Design */}
+        <section id="videos" className="py-12 sm:py-16 md:py-20 bg-gradient-to-b from-gray-50 to-white">
+          <div className="container mx-auto px-4 sm:px-6 lg:px-8">
+            {/* Section Header */}
+            <div className="text-center max-w-2xl mx-auto mb-10 sm:mb-14">
+              <span className="inline-flex items-center gap-2 bg-[#1A3329]/10 text-[#1A3329] px-4 py-1.5 rounded-full text-sm font-medium mb-4">
+                <Play size={14} fill="currentColor" />
+                Video Gallery
+              </span>
+              <h2 className="text-2xl sm:text-3xl md:text-4xl font-bold text-gray-900 mb-4">
+                Learn & Get Inspired
+              </h2>
+              <p className="text-gray-600 text-sm sm:text-base leading-relaxed">
+                Explore our collection of informative videos on sustainable living practices, 
+                eco-friendly products, and environmental conservation.
+              </p>
+            </div>
+
+            {/* Video Grid */}
+            <div className="max-w-6xl mx-auto">
+              <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 lg:gap-8">
+                {/* Featured Video - Takes 3 columns */}
+                <div className="lg:col-span-3">
+                  <FeaturedVideo 
+                    title={youtubeVideos[currentVideoIndex].title}
+                    description={youtubeVideos[currentVideoIndex].description}
+                    videoId={youtubeVideos[currentVideoIndex].id}
+                    thumbnail={youtubeVideos[currentVideoIndex].thumbnail}
+                    likes={youtubeVideos[currentVideoIndex].likes}
+                    views={youtubeVideos[currentVideoIndex].views}
+                    duration={youtubeVideos[currentVideoIndex].duration}
                   />
-                ))}
-                <a 
-                  href="https://www.youtube.com/@Nisarg_Maitri" 
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="block text-center bg-white text-[#1D3B30] rounded-lg p-3 text-sm font-medium shadow-sm border border-[#E6F0ED] transition-all hover:bg-[#E6F0ED] mt-4"
-                >
-                  View All Videos
-                  <ChevronRight size={14} className="inline-block ml-1" />
-                </a>
+                </div>
+                
+                {/* Playlist - Takes 2 columns */}
+                <div className="lg:col-span-2 flex flex-col">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold text-gray-900">Up Next</h3>
+                    <span className="text-sm text-gray-500">{youtubeVideos.length} videos</span>
+                  </div>
+                  
+                  <div className="flex-1 space-y-3">
+                    {youtubeVideos.map((video, index) => (
+                      <VideoCard
+                        key={video.id}
+                        video={video}
+                        index={index}
+                        isActive={index === currentVideoIndex}
+                        onClick={() => setCurrentVideoIndex(index)}
+                      />
+                    ))}
+                  </div>
+
+                  {/* View All Button */}
+                  <a 
+                    href="https://www.youtube.com/@Nisarg_Maitri" 
+                    target="_blank"
+                    rel="noopener noreferrer"
+                    className="mt-6 flex items-center justify-center gap-2 bg-[#1A3329] hover:bg-[#2F6844] text-white rounded-xl py-3.5 px-6 text-sm font-semibold shadow-lg shadow-[#1A3329]/20 hover:shadow-xl hover:shadow-[#1A3329]/30 transition-all duration-300 group"
+                  >
+                    <svg className="w-5 h-5" viewBox="0 0 24 24" fill="currentColor">
+                      <path d="M23.498 6.186a3.016 3.016 0 0 0-2.122-2.136C19.505 3.545 12 3.545 12 3.545s-7.505 0-9.377.505A3.017 3.017 0 0 0 .502 6.186C0 8.07 0 12 0 12s0 3.93.502 5.814a3.016 3.016 0 0 0 2.122 2.136c1.871.505 9.376.505 9.376.505s7.505 0 9.377-.505a3.015 3.015 0 0 0 2.122-2.136C24 15.93 24 12 24 12s0-3.93-.502-5.814zM9.545 15.568V8.432L15.818 12l-6.273 3.568z"/>
+                    </svg>
+                    View All on YouTube
+                    <ChevronRight size={16} className="transition-transform group-hover:translate-x-1" />
+                  </a>
+                </div>
               </div>
             </div>
           </div>

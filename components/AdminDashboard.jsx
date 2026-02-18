@@ -1,857 +1,843 @@
-import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import React, {
+  useState,
+  useEffect,
+  useCallback,
+  useRef,
+  useMemo,
+} from "react";
 import { useNavigate } from "react-router-dom";
-import Navbar from "./Navbar";
 import axios from "axios";
 import jsPDF from "jspdf";
 import autoTable from "jspdf-autotable";
-import debounce from "lodash/debounce";
-import { toast } from "react-toastify";
+import { toast, ToastContainer } from "react-toastify";
 import "react-toastify/dist/ReactToastify.css";
 
-const OrderRow = ({ order, onViewDetails }) => {
-  const formatDate = (dateString) => {
-    if (!dateString) return "N/A";
-    const date = new Date(dateString);
-    return isNaN(date)
-      ? "Invalid Date"
-      : date.toLocaleDateString("en-IN", {
-          year: "numeric",
-          month: "long",
-          day: "numeric",
-        });
-  };
-
-  return (
-    <tr className="border-b hover:bg-gray-50 transition-colors duration-200">
-      <td className="py-2 px-3 sm:px-4 md:px-6 text-gray-900 font-medium text-sm sm:text-base">
-        {order.orderId}
-      </td>
-      <td className="py-2 px-3 sm:px-4 md:px-6 text-gray-600 text-sm sm:text-base">
-        {order.customer.firstName} {order.customer.lastName}
-      </td>
-      <td className="py-2 px-3 sm:px-4 md:px-6 text-gray-600 text-sm sm:text-base">
-        {formatDate(order.createdAt || order.date)}
-      </td>
-      <td className="py-2 px-3 sm:px-4 md:px-6 text-gray-600 text-sm sm:text-base">
-        ₹{order.total.toLocaleString("en-IN")}
-      </td>
-      <td className="py-2 px-3 sm:px-4 md:px-6 text-gray-600 text-sm sm:text-base">
-        {order.paymentMethod}
-      </td>
-      <td className="py-2 px-3 sm:px-4 md:px-6">
-        <button
-          onClick={() => onViewDetails(order)}
-          className="text-[#1A3329] hover:text-[#2F6844] font-medium text-sm sm:text-base"
-        >
-          View Details
-        </button>
-      </td>
-    </tr>
-  );
-};
-
-const EmptyState = ({ message }) => (
-  <div className="flex flex-col items-center justify-center py-8 px-4 text-center">
-    <svg
-      className="w-12 h-12 sm:w-16 sm:h-16 text-gray-400 mb-4"
-      fill="none"
-      viewBox="0 0 24 24"
-      stroke="currentColor"
-    >
-      <path
-        strokeLinecap="round"
-        strokeLinejoin="round"
-        strokeWidth={1.5}
-        d="M19 20H5a2 2 0 01-2-2V6a2 2 0 012-2h10a2 2 0 012 2v1M19 20a2 2 0 002-2V8a2 2 0 00-2-2h-5m-4 0V5a2 2 0 114 0v1m-4 0h4"
-      />
-    </svg>
-    <h3 className="text-lg sm:text-xl font-medium text-gray-900 mb-2">{message}</h3>
-  </div>
-);
+/* ── Sub-components ── */
+import { getApiUrl, fmt, money, paymentLabel } from "./admin/helpers";
+import Sidebar from "./admin/Sidebar";
+import Header from "./admin/Header";
+import OverviewTab from "./admin/OverviewTab";
+import OrdersTab from "./admin/OrdersTab";
+import OrderDetail from "./admin/OrderDetail";
+import ProductsTab from "./admin/ProductsTab";
+import SettingsTab from "./admin/SettingsTab";
+import DeleteModal from "./admin/DeleteModal";
 
 const AdminDashboard = () => {
   const navigate = useNavigate();
+  const token = localStorage.getItem("token");
+
+  /* ── Navigation state ── */
+  const [activeTab, setActiveTab] = useState("overview");
+  const [sidebarOpen, setSidebarOpen] = useState(false);
+
+  /* ── Orders state ── */
   const [orders, setOrders] = useState([]);
   const [filteredOrders, setFilteredOrders] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [orderLoading, setOrderLoading] = useState(true);
   const [selectedOrder, setSelectedOrder] = useState(null);
-  const [error, setError] = useState(null);
-  const [filterDate, setFilterDate] = useState(new Date().toISOString().split("T")[0]);
-  const [searchOrderId, setSearchOrderId] = useState("");
-  const [isFiltering, setIsFiltering] = useState(false);
-  const [isSearching, setIsSearching] = useState(false);
+  const [orderSearch, setOrderSearch] = useState("");
+  const [orderDateFilter, setOrderDateFilter] = useState("");
+  const [orderStatusFilter, setOrderStatusFilter] = useState("all");
+  const [orderSort, setOrderSort] = useState("newest");
   const [sseConnected, setSseConnected] = useState(false);
-  const lastFilterParams = useRef({});
-  const prevFilterDate = useRef(new Date().toISOString().split("T")[0]);
-  const isFilterPending = useRef(false);
   const eventSourceRef = useRef(null);
   const reconnectAttempts = useRef(0);
-  const maxReconnectAttempts = 5;
 
-  const token = localStorage.getItem("token");
-  const stableNavigate = useCallback((path) => navigate(path), [navigate]);
-  const memoizedOrders = useMemo(() => orders, [orders]);
+  /* ── Products state ── */
+  const [products, setProducts] = useState([]);
+  const [productLoading, setProductLoading] = useState(true);
+  const [productSearch, setProductSearch] = useState("");
+  const [productFilter, setProductFilter] = useState("all");
+  const [showProductForm, setShowProductForm] = useState(false);
+  const [editingProduct, setEditingProduct] = useState(null);
+  const [productForm, setProductForm] = useState({
+    name: "",
+    description: "",
+    price: "",
+    comparePrice: "",
+    image: "",
+    category: "Bamboo",
+    tag: "",
+    stock: "",
+    sku: "",
+    isActive: true,
+  });
+  const [formErrors, setFormErrors] = useState({});
+  const [savingProduct, setSavingProduct] = useState(false);
 
-  const getApiUrl = () => import.meta.env.VITE_API_URL || "https://backendforshop.onrender.com";
-
-  const withRetry = async (fn, retries = 3, delay = 1000) => {
-    for (let i = 0; i < retries; i++) {
-      try {
-        return await fn();
-      } catch (error) {
-        if (i === retries - 1) throw error;
-        console.warn(`Retry ${i + 1}/${retries} failed:`, error.message);
-        await new Promise((resolve) => setTimeout(resolve, delay * Math.pow(2, i)));
-      }
-    }
-  };
-
-  const handleApiError = (error, operation) => {
-    const status = error.response?.status;
-    const message = error.response?.data?.error || `Failed to ${operation}. Please try again later.`;
-    console.error(`${operation} error:`, status, message);
-
-    if (status === 401 || status === 403) {
-      setError("Session expired or unauthorized. Please log in again.");
-      localStorage.removeItem("token");
-      localStorage.removeItem("isAdmin");
-      localStorage.removeItem("userName");
-      stableNavigate("/login");
-    } else {
-      setError(message);
-      toast.error(message);
-    }
-    return { isCsrfError: false, message };
-  };
-
-  const applyFilters = useCallback(
-    (ordersToFilter) => {
-      let filtered = ordersToFilter.filter((order) => ['Success', 'Paid'].includes(order.paymentStatus));
-      if (filterDate && filterDate !== new Date().toISOString().split("T")[0]) {
-        filtered = filtered.filter(
-          (order) => {
-            const orderDate = order.createdAt || order.date;
-            return orderDate && new Date(orderDate).toISOString().split("T")[0] === filterDate;
-          }
-        );
-      }
-      if (searchOrderId.trim()) {
-        filtered = filtered.filter((order) =>
-          order.orderId.toLowerCase().includes(searchOrderId.trim().toLowerCase())
-        );
-      }
-      return filtered;
-    },
-    [filterDate, searchOrderId]
+  /* ── Other state ── */
+  const [stats, setStats] = useState(null);
+  const [deleteTarget, setDeleteTarget] = useState(null);
+  const [adminName, setAdminName] = useState(
+    () => localStorage.getItem("adminName") || ""
   );
 
-  const fetchOrders = useCallback(
-    async (params = {}) => {
-      if (!token) {
-        setError("Please log in to access the dashboard.");
-        stableNavigate("/login");
-        return;
-      }
-
-      setLoading(true);
-      try {
-        const response = await withRetry(() =>
-          axios.get(`${getApiUrl()}/api/orders`, {
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            params,
-            timeout: 10000,
-            withCredentials: true,
-          })
-        );
-
-        const paidOrders = response.data.filter((order) => ['Success', 'Paid'].includes(order.paymentStatus));
-        setOrders(paidOrders);
-        setFilteredOrders(applyFilters(paidOrders));
-        setError(null);
-        console.log(`Fetched ${paidOrders.length} successful/paid orders`);
-      } catch (error) {
-        handleApiError(error, "fetch orders");
-        setOrders([]);
-        setFilteredOrders([]);
-      } finally {
-        setLoading(false);
-      }
-    },
-    [token, stableNavigate, applyFilters]
-  );
-
-  const setupSSE = useCallback(() => {
+  /* ════════════════════════════════════════════════
+     AUTH CHECK
+     ════════════════════════════════════════════════ */
+  useEffect(() => {
     if (!token) {
-      setError("Please log in to access SSE updates.");
-      stableNavigate("/login");
+      navigate("/login");
       return;
     }
-
-    const connectSSE = () => {
-      const eventSource = new EventSource(`${getApiUrl()}/api/order-updates?token=${token}`);
-      eventSourceRef.current = eventSource;
-
-      eventSource.onopen = () => {
-        console.log("SSE connection established");
-        setSseConnected(true);
-        setError(null);
-        reconnectAttempts.current = 0;
-        toast.success("Real-time order updates connected.");
-      };
-
-      eventSource.onmessage = (event) => {
-        try {
-          const data = JSON.parse(event.data);
-          console.log("SSE event received:", data);
-
-          if (data.event === "newOrder" || data.event === "orderUpdated") {
-            const order = data.order;
-            if (['Success', 'Paid'].includes(order.paymentStatus)) {
-              setOrders((prevOrders) => {
-                const orderExists = prevOrders.some((o) => o.orderId === order.orderId);
-                const updatedOrders = orderExists
-                  ? prevOrders.map((o) => (o.orderId === order.orderId ? order : o))
-                  : [...prevOrders, order];
-                return updatedOrders;
-              });
-              setFilteredOrders((prevFiltered) => {
-                const filtered = applyFilters([...prevFiltered, order]);
-                return filtered;
-              });
-              toast.success(
-                `Order ${order.orderId} ${data.event === "newOrder" ? "created" : "updated"}.`
-              );
-            }
-          }
-        } catch (err) {
-          console.error("SSE message parsing error:", err);
-        }
-      };
-
-      eventSource.onerror = () => {
-        console.error("SSE connection error");
-        setSseConnected(false);
-        eventSource.close();
-        if (reconnectAttempts.current < maxReconnectAttempts) {
-          const delay = Math.pow(2, reconnectAttempts.current) * 1000;
-          reconnectAttempts.current += 1;
-          console.log(`Reconnecting SSE in ${delay}ms (attempt ${reconnectAttempts.current})`);
-          setTimeout(connectSSE, delay);
-        } else {
-          setError("Failed to maintain real-time updates. Please refresh the page.");
-          toast.error("Real-time updates disconnected. Please refresh.");
-        }
-      };
-    };
-
-    connectSSE();
-
-    return () => {
-      if (eventSourceRef.current) {
-        console.log("Closing SSE connection");
-        eventSourceRef.current.close();
-        eventSourceRef.current = null;
+    const checkAdmin = async () => {
+      try {
+        const r = await axios.get(getApiUrl() + "/api/auth/check-admin", {
+          headers: { Authorization: "Bearer " + token },
+        });
+        if (!r.data.isAdmin) navigate("/");
+      } catch {
+        navigate("/login");
       }
     };
-  }, [token, stableNavigate, applyFilters]);
+    checkAdmin();
+  }, [token, navigate]);
+
+  /* ── Fetch admin name for header avatar ── */
+  useEffect(() => {
+    if (!token) return;
+    const fetchAdminName = async () => {
+      try {
+        const r = await axios.get(getApiUrl() + "/api/auth/profile", {
+          headers: { Authorization: "Bearer " + token },
+        });
+        const name = r.data.name || "";
+        setAdminName(name);
+        localStorage.setItem("adminName", name);
+      } catch {
+        /* ignore – header will use cached or fallback "A" */
+      }
+    };
+    fetchAdminName();
+  }, [token]);
+
+  /* ════════════════════════════════════════════════
+     FETCH FUNCTIONS
+     ════════════════════════════════════════════════ */
+  const fetchOrders = useCallback(async () => {
+    if (!token) return;
+    setOrderLoading(true);
+    try {
+      const r = await axios.get(getApiUrl() + "/api/orders", {
+        headers: { Authorization: "Bearer " + token },
+        timeout: 10000,
+      });
+      const paid = r.data.filter((o) =>
+        ["Success", "Paid"].includes(o.paymentStatus),
+      );
+      setOrders(paid);
+      setFilteredOrders(paid);
+    } catch (e) {
+      if (e.response?.status === 401) {
+        navigate("/login");
+        return;
+      }
+      toast.error("Failed to load orders");
+    } finally {
+      setOrderLoading(false);
+    }
+  }, [token, navigate]);
+
+  const fetchProducts = useCallback(async () => {
+    if (!token) return;
+    setProductLoading(true);
+    try {
+      const r = await axios.get(getApiUrl() + "/api/products", {
+        headers: { Authorization: "Bearer " + token },
+        timeout: 10000,
+      });
+      setProducts(r.data);
+    } catch (e) {
+      if (e.response?.status === 401) {
+        navigate("/login");
+        return;
+      }
+      toast.error("Failed to load products");
+    } finally {
+      setProductLoading(false);
+    }
+  }, [token, navigate]);
+
+  const fetchStats = useCallback(async () => {
+    if (!token) return;
+    try {
+      const r = await axios.get(getApiUrl() + "/api/products/admin/stats", {
+        headers: { Authorization: "Bearer " + token },
+        timeout: 10000,
+      });
+      setStats(r.data);
+    } catch {
+      /* silent */
+    }
+  }, [token]);
 
   useEffect(() => {
-    let mounted = true;
+    fetchOrders();
+    fetchProducts();
+    fetchStats();
+  }, [fetchOrders, fetchProducts, fetchStats]);
 
-    const initialize = async () => {
-      if (!mounted) return;
-      await fetchOrders();
-      return setupSSE();
+  /* ════════════════════════════════════════════════
+     SSE — live order updates
+     ════════════════════════════════════════════════ */
+  useEffect(() => {
+    if (!token) return;
+    const connect = () => {
+      const es = new EventSource(
+        getApiUrl() + "/api/order-updates?token=" + token,
+      );
+      eventSourceRef.current = es;
+      es.onopen = () => {
+        setSseConnected(true);
+        reconnectAttempts.current = 0;
+      };
+      es.onmessage = (ev) => {
+        try {
+          const d = JSON.parse(ev.data);
+          if (
+            (d.event === "newOrder" || d.event === "orderUpdated") &&
+            ["Success", "Paid"].includes(d.order?.paymentStatus)
+          ) {
+            setOrders((prev) => {
+              const exists = prev.some((o) => o.orderId === d.order.orderId);
+              return exists
+                ? prev.map((o) => (o.orderId === d.order.orderId ? d.order : o))
+                : [d.order, ...prev];
+            });
+            toast.success(
+              "Order " +
+                d.order.orderId +
+                " " +
+                (d.event === "newOrder" ? "received" : "updated"),
+            );
+          }
+        } catch {
+          /* ignore parse errors */
+        }
+      };
+      es.onerror = () => {
+        setSseConnected(false);
+        es.close();
+        if (reconnectAttempts.current < 5) {
+          setTimeout(connect, Math.pow(2, reconnectAttempts.current) * 1000);
+          reconnectAttempts.current++;
+        }
+      };
     };
-
-    const cleanup = initialize();
-
+    connect();
     return () => {
-      mounted = false;
-      cleanup.then((closeSSE) => closeSSE && closeSSE());
+      if (eventSourceRef.current) eventSourceRef.current.close();
     };
-  }, [fetchOrders, setupSSE]);
+  }, [token]);
 
-  const handleFilterOrders = useCallback(
-    async (params) => {
-      if (isFiltering) {
-        console.log("Skipping filter: already filtering");
-        return;
-      }
+  /* ════════════════════════════════════════════════
+     ORDER FILTERING
+     ════════════════════════════════════════════════ */
+  useEffect(() => {
+    let list = orders.slice();
+    if (orderSearch.trim()) {
+      const q = orderSearch.toLowerCase();
+      list = list.filter(
+        (o) =>
+          o.orderId.toLowerCase().includes(q) ||
+          (o.customer.firstName + " " + o.customer.lastName)
+            .toLowerCase()
+            .includes(q) ||
+          o.customer.email.toLowerCase().includes(q),
+      );
+    }
+    if (orderDateFilter) {
+      list = list.filter((o) => {
+        const d = o.createdAt || o.date;
+        return d && new Date(d).toISOString().split("T")[0] === orderDateFilter;
+      });
+    }
+    if (orderStatusFilter !== "all") {
+      list = list.filter((o) => (o.orderStatus || "Confirmed") === orderStatusFilter);
+    }
+    list.sort((a, b) => {
+      const da = new Date(a.createdAt || a.date);
+      const db = new Date(b.createdAt || b.date);
+      return orderSort === "newest" ? db - da : da - db;
+    });
+    setFilteredOrders(list);
+  }, [orders, orderSearch, orderDateFilter, orderStatusFilter, orderSort]);
 
-      if (
-        JSON.stringify(params) === JSON.stringify(lastFilterParams.current) &&
-        filteredOrders.length > 0
-      ) {
-        console.log("Skipping duplicate filter with params:", JSON.stringify(params));
-        toast.info("No change in filter parameters.");
-        return;
-      }
+  /* ════════════════════════════════════════════════
+     PRODUCT FILTERING
+     ════════════════════════════════════════════════ */
+  const displayProducts = useMemo(() => {
+    let list = products.slice();
+    if (productSearch.trim()) {
+      const q = productSearch.toLowerCase();
+      list = list.filter(
+        (p) =>
+          p.name.toLowerCase().includes(q) ||
+          p.category.toLowerCase().includes(q),
+      );
+    }
+    if (productFilter === "active") list = list.filter((p) => p.isActive);
+    else if (productFilter === "inactive")
+      list = list.filter((p) => !p.isActive);
+    else if (productFilter === "outofstock")
+      list = list.filter((p) => p.stock === 0);
+    return list;
+  }, [products, productSearch, productFilter]);
 
-      setIsFiltering(true);
-      isFilterPending.current = true;
-      try {
-        const response = await withRetry(() =>
-          axios.get(`${getApiUrl()}/api/orders`, {
-            params,
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            timeout: 10000,
-            withCredentials: true,
-          })
-        );
-
-        const paidOrders = response.data.filter((order) => ['Success', 'Paid'].includes(order.paymentStatus));
-        setFilteredOrders(paidOrders);
-        lastFilterParams.current = params;
-        if (paidOrders.length === 0) {
-          toast.info("No successful orders found for the selected date.");
-        }
-        console.log(`Filtered ${paidOrders.length} successful/paid orders`);
-      } catch (error) {
-        handleApiError(error, "filter orders");
-      } finally {
-        setIsFiltering(false);
-        isFilterPending.current = false;
-      }
-    },
-    [token, isFiltering, filteredOrders.length]
-  );
-
-  const handleSearchOrders = useCallback(
-    async (orderId) => {
-      if (isSearching) {
-        console.log("Skipping search: already searching");
-        return;
-      }
-
-      if (!orderId.trim()) {
-        setFilteredOrders(memoizedOrders);
-        return;
-      }
-
-      setIsSearching(true);
-      try {
-        const params = { orderId: orderId.trim() };
-        console.log("Searching orders with params:", JSON.stringify(params));
-        const response = await withRetry(() =>
-          axios.get(`${getApiUrl()}/api/orders`, {
-            params,
-            headers: {
-              Authorization: `Bearer ${token}`,
-            },
-            timeout: 10000,
-            withCredentials: true,
-          })
-        );
-
-        const paidOrders = response.data.filter((order) => ['Success', 'Paid'].includes(order.paymentStatus));
-        setFilteredOrders(paidOrders);
-        if (paidOrders.length === 0) {
-          toast.info("No successful orders found for the provided Order ID.");
-        }
-        console.log(`Searched ${paidOrders.length} successful/paid orders`);
-      } catch (error) {
-        handleApiError(error, "search orders");
-      } finally {
-        setIsSearching(false);
-      }
-    },
-    [memoizedOrders, token, isSearching]
-  );
-
-  const debouncedHandleFilterOrders = useMemo(
-    () => debounce(handleFilterOrders, 600, { leading: false, trailing: true }),
-    [handleFilterOrders]
-  );
-
-  const debouncedHandleSearchOrders = useMemo(
-    () => debounce(handleSearchOrders, 600, { leading: false, trailing: true }),
-    [handleSearchOrders]
-  );
-
-  const clearFilters = () => {
-    setFilterDate(new Date().toISOString().split("T")[0]);
-    setSearchOrderId("");
-    setFilteredOrders(memoizedOrders);
-    lastFilterParams.current = {};
-    prevFilterDate.current = new Date().toISOString().split("T")[0];
-    isFilterPending.current = false;
-    toast.success("Filters and search cleared.");
+  /* ════════════════════════════════════════════════
+     PRODUCT FORM HELPERS
+     ════════════════════════════════════════════════ */
+  const resetForm = () => {
+    setProductForm({
+      name: "",
+      description: "",
+      price: "",
+      comparePrice: "",
+      image: "",
+      category: "Bamboo",
+      tag: "",
+      stock: "",
+      sku: "",
+      isActive: true,
+    });
+    setEditingProduct(null);
+    setFormErrors({});
+    setShowProductForm(false);
   };
 
-  useEffect(() => {
-    if (filterDate === prevFilterDate.current || isFilterPending.current) {
-      return;
+  const openEditForm = (p) => {
+    setEditingProduct(p);
+    setProductForm({
+      name: p.name,
+      description: p.description,
+      price: String(p.price),
+      comparePrice: String(p.comparePrice || ""),
+      image: p.image,
+      category: p.category,
+      tag: p.tag || "",
+      stock: String(p.stock),
+      sku: p.sku || "",
+      isActive: p.isActive,
+    });
+    setFormErrors({});
+    setShowProductForm(true);
+  };
+
+  const validateForm = () => {
+    const e = {};
+    if (!productForm.name.trim()) e.name = "Required";
+    if (!productForm.description.trim()) e.description = "Required";
+    if (!productForm.price || Number(productForm.price) < 1) e.price = "Min ₹1";
+    if (!productForm.image.trim()) e.image = "Required";
+    if (!productForm.category) e.category = "Required";
+    if (productForm.stock === "" || Number(productForm.stock) < 0)
+      e.stock = "Min 0";
+    setFormErrors(e);
+    return Object.keys(e).length === 0;
+  };
+
+  /* ════════════════════════════════════════════════
+     PRODUCT CRUD
+     ════════════════════════════════════════════════ */
+  const handleSaveProduct = async () => {
+    if (!validateForm()) return;
+    setSavingProduct(true);
+    const payload = {
+      name: productForm.name,
+      description: productForm.description,
+      price: Number(productForm.price),
+      comparePrice: Number(productForm.comparePrice) || 0,
+      image: productForm.image,
+      category: productForm.category,
+      tag: productForm.tag,
+      stock: Number(productForm.stock),
+      sku: productForm.sku,
+      isActive: productForm.isActive,
+    };
+    try {
+      if (editingProduct) {
+        await axios.put(
+          getApiUrl() + "/api/products/" + editingProduct._id,
+          payload,
+          {
+            headers: {
+              Authorization: "Bearer " + token,
+              "Content-Type": "application/json",
+            },
+          },
+        );
+        toast.success("Product updated");
+      } else {
+        await axios.post(getApiUrl() + "/api/products", payload, {
+          headers: {
+            Authorization: "Bearer " + token,
+            "Content-Type": "application/json",
+          },
+        });
+        toast.success("Product created");
+      }
+      resetForm();
+      fetchProducts();
+      fetchStats();
+    } catch (e) {
+      toast.error(e.response?.data?.error || "Failed to save product");
+    } finally {
+      setSavingProduct(false);
     }
+  };
 
-    const params = filterDate ? { date: filterDate } : {};
-    prevFilterDate.current = filterDate;
-
-    if (filterDate !== new Date().toISOString().split("T")[0]) {
-      debouncedHandleFilterOrders(params);
-    } else {
-      setFilteredOrders(applyFilters(memoizedOrders));
-      lastFilterParams.current = {};
+  const handleDeleteProduct = async (id) => {
+    if (!id && !deleteTarget) return;
+    const targetId = id || deleteTarget._id;
+    try {
+      await axios.delete(getApiUrl() + "/api/products/" + targetId, {
+        headers: { Authorization: "Bearer " + token },
+      });
+      toast.success("Product deleted");
+      setDeleteTarget(null);
+      fetchProducts();
+      fetchStats();
+    } catch {
+      toast.error("Failed to delete product");
     }
+  };
 
-    return () => debouncedHandleFilterOrders.cancel();
-  }, [filterDate, debouncedHandleFilterOrders, memoizedOrders, applyFilters]);
+  const handleToggleActive = async (p) => {
+    try {
+      await axios.put(
+        getApiUrl() + "/api/products/" + p._id,
+        { isActive: !p.isActive },
+        {
+          headers: {
+            Authorization: "Bearer " + token,
+            "Content-Type": "application/json",
+          },
+        },
+      );
+      fetchProducts();
+      fetchStats();
+      toast.success(
+        p.isActive ? "Product hidden from shop" : "Product visible on shop",
+      );
+    } catch {
+      toast.error("Update failed");
+    }
+  };
 
-  const handleViewOrderDetails = (order) => setSelectedOrder(order);
+  const handleSeedProducts = async () => {
+    try {
+      await axios.post(
+        getApiUrl() + "/api/products/seed",
+        {},
+        {
+          headers: { Authorization: "Bearer " + token },
+        },
+      );
+      toast.success("Products seeded from existing catalog");
+      fetchProducts();
+      fetchStats();
+    } catch (e) {
+      toast.error(e.response?.data?.error || "Seed failed");
+    }
+  };
 
+  /* ════════════════════════════════════════════════
+     UPDATE ORDER STATUS
+     ════════════════════════════════════════════════ */
+  const updateOrderStatus = async (orderId, newStatus) => {
+    try {
+      const r = await axios.put(
+        getApiUrl() + "/api/orders/" + orderId + "/status",
+        { orderStatus: newStatus },
+        { headers: { Authorization: "Bearer " + token } },
+      );
+      if (r.data.success) {
+        toast.success("Order status updated to " + newStatus);
+        /* Update local state so UI reflects immediately */
+        setOrders((prev) =>
+          prev.map((o) =>
+            o.orderId === orderId ? { ...o, orderStatus: newStatus } : o,
+          ),
+        );
+        if (selectedOrder?.orderId === orderId) {
+          setSelectedOrder((prev) => ({ ...prev, orderStatus: newStatus }));
+        }
+      }
+    } catch (e) {
+      toast.error(e.response?.data?.error || "Failed to update status");
+    }
+  };
+
+  /* ════════════════════════════════════════════════
+     PDF DOWNLOAD
+     ════════════════════════════════════════════════ */
+  const downloadPDF = (order) => {
+    /* ── PDF-safe money formatter (jsPDF default font has no ₹ glyph) ── */
+    const rs = (n) => "Rs. " + Number(n || 0).toFixed(2);
+
+    const doc = new jsPDF();
+    const pageW = doc.internal.pageSize.getWidth();
+    const margin = 14;
+
+    /* ── Brand color ── */
+    const brand = [26, 51, 41]; // #1A3329
+
+    /* ── Thin colored bar at the very top ── */
+    doc.setFillColor(...brand);
+    doc.rect(0, 0, pageW, 4, "F");
+
+    /* ── Company branding ── */
+    doc.setFontSize(20);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(...brand);
+    doc.text("Nisarg Maitri", margin, 18);
+
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(100, 100, 100);
+    doc.text("Eco-Friendly Products", margin, 24);
+
+    /* ── INVOICE badge on top-right ── */
+    doc.setFontSize(28);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(210, 210, 210);
+    doc.text("INVOICE", pageW - margin, 20, { align: "right" });
+
+    /* ── Divider line ── */
+    doc.setDrawColor(220, 220, 220);
+    doc.setLineWidth(0.4);
+    doc.line(margin, 30, pageW - margin, 30);
+
+    /* ── Invoice meta ── */
+    doc.setFontSize(9);
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(60, 60, 60);
+    doc.text("Invoice No:", margin, 38);
+    doc.text("Date:", margin, 44);
+    doc.text("Payment:", margin, 50);
+    doc.text("Order Status:", margin, 56);
+
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(80, 80, 80);
+    doc.text(order.orderId, margin + 30, 38);
+    doc.text(fmt(order.createdAt), margin + 30, 44);
+
+    /* Build a PDF-safe payment string:  COD (Success)  or  Prepaid - UPI (Success)  */
+    const pdfPayLabel = order.paymentMethod === "COD"
+      ? "COD"
+      : order.razorpayMethod
+        ? "Prepaid - " + order.razorpayMethod
+        : "Prepaid";
+    doc.text(
+      pdfPayLabel + " (" + (order.paymentStatus || "N/A") + ")",
+      margin + 30,
+      50
+    );
+    doc.text(order.orderStatus || "Confirmed", margin + 30, 56);
+
+    /* ── Bill To section (right side) ── */
+    const rightX = pageW / 2 + 10;
+    doc.setFont("helvetica", "bold");
+    doc.setTextColor(60, 60, 60);
+    doc.text("Bill To:", rightX, 38);
+
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(80, 80, 80);
+    const custName =
+      ((order.customer.firstName || "") + " " + (order.customer.lastName || "")).trim() || "N/A";
+    doc.text(custName, rightX, 44);
+    doc.text(order.customer.email || "N/A", rightX, 50);
+    doc.text(order.customer.phone || "N/A", rightX, 56);
+
+    /* Address (wrap long text) */
+    const addr = [
+      order.shippingAddress.address1,
+      order.shippingAddress.city,
+      order.shippingAddress.state,
+      order.shippingAddress.pincode ? "- " + order.shippingAddress.pincode : "",
+    ]
+      .filter(Boolean)
+      .join(", ");
+    const addrLines = doc.splitTextToSize(addr || "N/A", pageW / 2 - 20);
+    doc.text(addrLines, rightX, 62);
+
+    /* ── Items table ── */
+    const itemsStartY = 80;
+    autoTable(doc, {
+      startY: itemsStartY,
+      head: [["#", "Item", "Qty", "Price", "Total"]],
+      body: (order.items || []).map((item, idx) => [
+        idx + 1,
+        item.name || "N/A",
+        item.quantity,
+        rs(item.price),
+        rs(item.price * item.quantity),
+      ]),
+      headStyles: {
+        fillColor: brand,
+        textColor: [255, 255, 255],
+        fontStyle: "bold",
+        fontSize: 9,
+        halign: "left",
+      },
+      bodyStyles: {
+        fontSize: 9,
+        textColor: [50, 50, 50],
+      },
+      columnStyles: {
+        0: { cellWidth: 12, halign: "center" },
+        1: { cellWidth: "auto" },
+        2: { cellWidth: 18, halign: "center" },
+        3: { cellWidth: 32, halign: "right" },
+        4: { cellWidth: 32, halign: "right" },
+      },
+      alternateRowStyles: { fillColor: [245, 248, 246] },
+      margin: { left: margin, right: margin },
+      theme: "grid",
+      styles: { lineColor: [220, 220, 220], lineWidth: 0.3 },
+    });
+
+    /* ── Totals section (right-aligned summary box) ── */
+    const sub = (order.items || []).reduce((s, i) => s + i.price * i.quantity, 0);
+    const shippingLabel = "Shipping (" + (order.shippingMethod?.type || "Standard") + ")";
+    const shippingValue =
+      order.shippingMethod?.cost === 0 ? "Free" : rs(order.shippingMethod?.cost);
+
+    const summaryRows = [
+      ["Subtotal", rs(sub)],
+      [shippingLabel, shippingValue],
+    ];
+    if (order.coupon?.discount > 0) {
+      summaryRows.push(["Coupon (" + order.coupon.code + ")", "- " + rs(order.coupon.discount)]);
+    }
+    summaryRows.push(["Total", rs(order.total)]);
+
+    autoTable(doc, {
+      startY: doc.lastAutoTable.finalY + 6,
+      body: summaryRows,
+      theme: "plain",
+      styles: { fontSize: 10, textColor: [60, 60, 60] },
+      columnStyles: {
+        0: { cellWidth: 80, halign: "right", fontStyle: "normal" },
+        1: { cellWidth: 45, halign: "right", fontStyle: "normal" },
+      },
+      margin: { left: pageW - margin - 125, right: margin },
+      didParseCell: (d) => {
+        const isLast = d.row.index === summaryRows.length - 1;
+        if (isLast) {
+          d.cell.styles.fontStyle = "bold";
+          d.cell.styles.fontSize = 12;
+          d.cell.styles.textColor = brand;
+        }
+      },
+      didDrawCell: (d) => {
+        /* Draw a top border on the Total row for separation */
+        const isLast = d.row.index === summaryRows.length - 1;
+        if (isLast && d.column.index === 0) {
+          doc.setDrawColor(200, 200, 200);
+          doc.setLineWidth(0.4);
+          doc.line(d.cell.x, d.cell.y, d.cell.x + 125, d.cell.y);
+        }
+      },
+    });
+
+    /* ── Footer ── */
+    const footerY = doc.lastAutoTable.finalY + 20;
+    doc.setDrawColor(220, 220, 220);
+    doc.setLineWidth(0.3);
+    doc.line(margin, footerY, pageW - margin, footerY);
+
+    doc.setFontSize(8);
+    doc.setFont("helvetica", "normal");
+    doc.setTextColor(150, 150, 150);
+    doc.text("Thank you for your order!", pageW / 2, footerY + 8, { align: "center" });
+    doc.text("Nisarg Maitri  |  Eco-Friendly Products  |  nisargmaitri.com", pageW / 2, footerY + 14, {
+      align: "center",
+    });
+
+    doc.save("Invoice_" + order.orderId + ".pdf");
+  };
+
+  /* ════════════════════════════════════════════════
+     LOGOUT
+     ════════════════════════════════════════════════ */
   const handleLogout = () => {
     localStorage.removeItem("token");
     localStorage.removeItem("isAdmin");
     localStorage.removeItem("userName");
-    stableNavigate("/");
+    navigate("/");
   };
 
-  const handleSearchClick = () => debouncedHandleSearchOrders(searchOrderId);
-
-  const isFilterButtonDisabled = useMemo(
-    () => isFiltering || loading || filterDate === prevFilterDate.current,
-    [isFiltering, loading, filterDate]
+  /* ════════════════════════════════════════════════
+     COMPUTED
+     ════════════════════════════════════════════════ */
+  const totalRevenue = useMemo(
+    () => orders.reduce((s, o) => s + (o.total || 0), 0),
+    [orders],
   );
+  const todayOrders = useMemo(() => {
+    const today = new Date().toISOString().split("T")[0];
+    return orders.filter(
+      (o) => (o.createdAt || o.date || "").slice(0, 10) === today,
+    ).length;
+  }, [orders]);
 
-  const downloadOrderPDF = (order) => {
-    try {
-      const doc = new jsPDF();
-      doc.setFontSize(18);
-      doc.text(`Invoice: ${order.orderId || "N/A"}`, 14, 20);
-      doc.setFontSize(10);
-      doc.text(`Date: ${new Date(order.createdAt || order.date).toLocaleDateString("en-IN")}`, 14, 28);
+  /* ════════════════════════════════════════════════
+     SIDEBAR NAV HANDLER
+     ════════════════════════════════════════════════ */
+  const handleNav = (tabId) => {
+    setActiveTab(tabId);
+    setSidebarOpen(false);
+    setSelectedOrder(null);
+    setShowProductForm(false);
+  };
 
-      doc.setFontSize(12);
-      doc.text("Customer Information", 14, 40);
-      autoTable(doc, {
-        startY: 45,
-        head: [["Field", "Details"]],
-        body: [
-          ["Name", `${order.customer?.firstName || ""} ${order.customer?.lastName || ""}`],
-          ["Email", order.customer?.email || "N/A"],
-          ["Phone", order.customer?.phone || "N/A"],
-        ],
-        styles: { fontSize: 10, cellPadding: 3, overflow: "linebreak" },
-        headStyles: { fillColor: [26, 51, 41], textColor: [255, 255, 255] },
-        alternateRowStyles: { fillColor: [245, 245, 245] },
-        columnStyles: { 0: { cellWidth: 50 }, 1: { cellWidth: 130 } },
-      });
-
-      let shippingY = doc.lastAutoTable.finalY + 10;
-      doc.setFontSize(12);
-      doc.text("Shipping Details", 14, shippingY);
-      const shippingBody = [["Address Line 1", order.shippingAddress?.address1 || "N/A"]];
-      if (order.shippingAddress?.address2) {
-        shippingBody.push(["Address Line 2", order.shippingAddress.address2]);
-      }
-      shippingBody.push(
-        ["City/State", `${order.shippingAddress?.city || ""}, ${order.shippingAddress?.state || ""}`],
-        ["Pincode", order.shippingAddress?.pincode || "N/A"],
-        ["Shipping Method", order.shippingMethod?.type || "Standard"]
-      );
-      autoTable(doc, {
-        startY: shippingY + 5,
-        head: [["Field", "Details"]],
-        body: shippingBody,
-        styles: { fontSize: 10, cellPadding: 3, overflow: "linebreak" },
-        headStyles: { fillColor: [26, 51, 41], textColor: [255, 255, 255] },
-        alternateRowStyles: { fillColor: [245, 245, 245] },
-        columnStyles: { 0: { cellWidth: 50 }, 1: { cellWidth: 130 } },
-      });
-
-      let itemsY = doc.lastAutoTable.finalY + 10;
-      doc.setFontSize(12);
-      doc.text("Items Purchased", 14, itemsY);
-      autoTable(doc, {
-        startY: itemsY + 5,
-        head: [["Item Name", "Qty", "Unit Price (₹)", "Total (₹)"]],
-        body: (order.items || []).map((item) => [
-          item.name || "Unknown Item",
-          item.quantity || 0,
-          (item.price || 0).toLocaleString("en-IN", { style: "currency", currency: "INR" }).replace("INR", "₹"),
-          ((item.price || 0) * (item.quantity || 0)).toLocaleString("en-IN", { style: "currency", currency: "INR" }).replace("INR", "₹"),
-        ]),
-        styles: { fontSize: 10, cellPadding: 3, overflow: "linebreak" },
-        headStyles: { fillColor: [26, 51, 41], textColor: [255, 255, 255] },
-        alternateRowStyles: { fillColor: [245, 245, 245] },
-        columnStyles: {
-          0: { cellWidth: 80 },
-          1: { cellWidth: 20, halign: "center" },
-          2: { cellWidth: 40, halign: "right" },
-          3: { cellWidth: 40, halign: "right" },
-        },
-      });
-
-    let totalY = doc.lastAutoTable.finalY + 10;
-doc.setFontSize(12);
-
-// Calculate subtotal
-const subtotal = (order.items || []).reduce((sum, item) => sum + (item.price || 0) * (item.quantity || 0), 0);
-const shippingCost = order.shippingMethod?.cost || 0;
-const couponDiscount = order.coupon?.discount || 0;
-
-// Order summary table
-const summaryBody = [
-  ["Subtotal", subtotal.toLocaleString("en-IN", { style: "currency", currency: "INR" }).replace("INR", "₹")],
-  ["Shipping (" + (order.shippingMethod?.type || "Standard") + ")", 
-   shippingCost === 0 ? "Free" : shippingCost.toLocaleString("en-IN", { style: "currency", currency: "INR" }).replace("INR", "₹")],
-];
-
-if (order.coupon?.code && couponDiscount > 0) {
-  summaryBody.push([
-    "Coupon (" + order.coupon.code + ")",
-    "-" + couponDiscount.toLocaleString("en-IN", { style: "currency", currency: "INR" }).replace("INR", "₹")
-  ]);
-}
-
-summaryBody.push([
-  "Grand Total",
-  (order.total || 0).toLocaleString("en-IN", { style: "currency", currency: "INR" }).replace("INR", "₹")
-]);
-
-autoTable(doc, {
-  startY: totalY,
-  body: summaryBody,
-  styles: { fontSize: 11, cellPadding: 3, halign: "right" },
-  columnStyles: { 0: { cellWidth: 140 }, 1: { cellWidth: 40 } },
-  didParseCell: function (data) {
-    if (data.row.index === summaryBody.length - 1) { // Last row (Grand Total)
-      data.cell.styles.fontStyle = 'bold';
-      data.cell.styles.fillColor = [245, 245, 245];
-    }
-    if (order.coupon?.code && data.row.index === summaryBody.length - 2 && summaryBody.length > 3) { // Coupon row
-      data.cell.styles.textColor = [0, 128, 0]; // Green color for discount
-    }
-  }
-});
-
-      let paymentY = doc.lastAutoTable.finalY + 10;
-      doc.setFontSize(12);
-      doc.text("Payment Information", 14, paymentY);
-      const paymentBody = [["Payment Method", order.paymentMethod || "N/A"]];
-      if (order.paymentMethod !== "COD") {
-        paymentBody.push(
-          ["Payment ID", order.razorpayPaymentId || "N/A"],
-          ["Razorpay Order ID", order.razorpayOrderId || "N/A"],
-          ["Status", order.paymentStatus || "N/A"]
+  /* ════════════════════════════════════════════════
+     RENDER — Active Tab Content
+     ════════════════════════════════════════════════ */
+  const renderContent = () => {
+    switch (activeTab) {
+      case "overview":
+        return (
+          <OverviewTab
+            orders={orders}
+            totalRevenue={totalRevenue}
+            todayOrders={todayOrders}
+            stats={stats}
+            products={products}
+            setActiveTab={setActiveTab}
+            setSelectedOrder={setSelectedOrder}
+          />
         );
-      }
-      autoTable(doc, {
-        startY: paymentY + 5,
-        head: [["Field", "Details"]],
-        body: paymentBody,
-        styles: { fontSize: 10, cellPadding: 3, overflow: "linebreak" },
-        headStyles: { fillColor: [26, 51, 41], textColor: [255, 255, 255] },
-        alternateRowStyles: { fillColor: [245, 245, 245] },
-        columnStyles: { 0: { cellWidth: 50 }, 1: { cellWidth: 130 } },
-      });
-
-      doc.save(`Invoice_${order.orderId || "unknown"}.pdf`);
-    } catch (error) {
-      console.error("PDF generation error:", error);
-      setError("Failed to generate PDF. Please try again.");
-      toast.error("Failed to generate PDF. Please try again.");
+      case "orders":
+        if (selectedOrder) {
+          return (
+            <OrderDetail
+              order={selectedOrder}
+              onBack={() => setSelectedOrder(null)}
+              onDownload={downloadPDF}
+              onUpdateStatus={updateOrderStatus}
+            />
+          );
+        }
+        return (
+          <OrdersTab
+            orders={orders}
+            filteredOrders={filteredOrders}
+            orderLoading={orderLoading}
+            orderSearch={orderSearch}
+            setOrderSearch={setOrderSearch}
+            orderDateFilter={orderDateFilter}
+            setOrderDateFilter={setOrderDateFilter}
+            orderStatusFilter={orderStatusFilter}
+            setOrderStatusFilter={setOrderStatusFilter}
+            orderSort={orderSort}
+            setOrderSort={setOrderSort}
+            fetchOrders={fetchOrders}
+            setSelectedOrder={setSelectedOrder}
+            downloadPDF={downloadPDF}
+          />
+        );
+      case "products":
+        return (
+          <ProductsTab
+            products={products}
+            displayProducts={displayProducts}
+            productLoading={productLoading}
+            productSearch={productSearch}
+            setProductSearch={setProductSearch}
+            productFilter={productFilter}
+            setProductFilter={setProductFilter}
+            showProductForm={showProductForm}
+            setShowProductForm={setShowProductForm}
+            editingProduct={editingProduct}
+            productForm={productForm}
+            setProductForm={setProductForm}
+            formErrors={formErrors}
+            savingProduct={savingProduct}
+            handleSaveProduct={handleSaveProduct}
+            resetForm={resetForm}
+            openEditForm={openEditForm}
+            handleToggleActive={handleToggleActive}
+            setDeleteTarget={setDeleteTarget}
+            handleSeedProducts={handleSeedProducts}
+          />
+        );
+      case "settings":
+        return (
+          <SettingsTab
+            token={token}
+            onTokenRefresh={(newToken) => {
+              localStorage.setItem("token", newToken);
+            }}
+            onNameChange={(name) => {
+              setAdminName(name);
+              localStorage.setItem("adminName", name);
+            }}
+          />
+        );
+      default:
+        return null;
     }
   };
 
+  /* ════════════════════════════════════════════════
+     MAIN LAYOUT
+     ════════════════════════════════════════════════ */
   return (
-    <div className="bg-gray-50 min-h-screen font-serif">
-      <Navbar />
-      <div className="container mx-auto px-2 sm:px-4 py-6">
-        <div className="flex flex-col md:flex-row md:justify-between md:items-center mb-4 sm:mb-6 gap-4">
-          <h1 className="text-2xl sm:text-3xl font-bold text-gray-900">
-            Admin Dashboard - Orders
-          </h1>
-          <div className="flex items-center gap-2 sm:gap-4 flex-wrap">
-            <span
-              className={`text-xs sm:text-sm ${
-                sseConnected ? "text-green-600" : "text-red-600"
-              }`}
-            >
-              {sseConnected ? "Real-time updates: Connected" : "Real-time updates: Disconnected"}
-            </span>
-            <button
-              onClick={handleLogout}
-              className="bg-red-500 hover:bg-red-600 text-white px-3 py-1.5 sm:px-5 sm:py-2 rounded-md transition-colors duration-300 text-sm sm:text-base"
-              disabled={loading}
-            >
-              Logout
-            </button>
-          </div>
-        </div>
+    <div className="min-h-screen bg-[#f5f5f5] font-sans antialiased text-[#111]">
+      <ToastContainer
+        position="bottom-right"
+        autoClose={3000}
+        hideProgressBar
+        newestOnTop
+        closeOnClick
+        rtl={false}
+        pauseOnFocusLoss={false}
+        theme="light"
+      />
 
-        <div className="bg-white rounded-lg shadow-md overflow-hidden">
-          {loading ? (
-            <div className="animate-pulse p-4 sm:p-6">
-              <div className="space-y-4">
-                {[1, 2, 3, 4].map((idx) => (
-                  <div key={idx} className="flex items-center space-x-2 sm:space-x-4">
-                    <div className="w-8 h-8 sm:w-12 sm:h-12 bg-gray-300 rounded"></div>
-                    <div className="flex-1 space-y-2">
-                      <div className="h-3 sm:h-4 bg-gray-300 rounded w-1/3"></div>
-                      <div className="h-3 sm:h-4 bg-gray-300 rounded w-2/3"></div>
-                    </div>
-                  </div>
-                ))}
-              </div>
-            </div>
-          ) : error ? (
-            <div className="p-4 sm:p-6 text-red-600 flex flex-col sm:flex-row sm:justify-between sm:items-center gap-2">
-              <span className="text-sm sm:text-base">{error}</span>
-              {error.includes("log in") && (
-                <button
-                  onClick={() => stableNavigate("/login")}
-                  className="text-[#1A3329] hover:text-[#2F6844] font-medium text-sm sm:text-base"
-                  disabled={loading}
-                >
-                  Go to Login
-                </button>
-              )}
-            </div>
-          ) : (
-            <>
-              {!selectedOrder ? (
-                <>
-                  <div className="p-4 sm:p-6 flex flex-col gap-4">
-                    <div className="flex flex-col sm:flex-row sm:items-end gap-2 sm:gap-4 flex-wrap">
-                      <div className="flex-1 min-w-[150px]">
-                        <label
-                          htmlFor="searchOrderId"
-                          className="text-xs sm:text-sm font-medium text-gray-700 mb-1 block"
-                        >
-                          Order ID
-                        </label>
-                        <input
-                          type="text"
-                          id="searchOrderId"
-                          value={searchOrderId}
-                          onChange={(e) => setSearchOrderId(e.target.value)}
-                          placeholder="Enter Order ID"
-                          className="border border-gray-300 rounded-md p-2 w-full text-sm sm:text-base"
-                          disabled={isSearching || loading}
-                        />
-                      </div>
-                      <button
-                        onClick={handleSearchClick}
-                        className="bg-[#1A3329] hover:bg-[#2F6844] text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-sm sm:text-base"
-                        disabled={isSearching || loading}
-                      >
-                        Search
-                      </button>
-                    </div>
-                    <div className="flex flex-col sm:flex-row sm:items-end gap-2 sm:gap-4 flex-wrap">
-                      <div className="flex-1 min-w-[150px]">
-                        <label
-                          htmlFor="filterDate"
-                          className="text-xs sm:text-sm font-medium text-gray-700 mb-1 block"
-                        >
-                          Filter by Date
-                        </label>
-                        <input
-                          type="date"
-                          id="filterDate"
-                          value={filterDate}
-                          onChange={(e) => setFilterDate(e.target.value)}
-                          className="border border-gray-300 rounded-md p-2 w-full text-sm sm:text-base"
-                          disabled={isFiltering || loading}
-                        />
-                      </div>
-                      <button
-                        onClick={() => debouncedHandleFilterOrders({ date: filterDate })}
-                        className="bg-[#1A3329] hover:bg-[#2F6844] text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-sm sm:text-base"
-                        disabled={isFilterButtonDisabled}
-                      >
-                        Filter Orders
-                      </button>
-                    </div>
-                    <button
-                      onClick={clearFilters}
-                      className="bg-gray-500 hover:bg-gray-600 text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-md text-sm sm:text-base self-start"
-                      disabled={isFiltering || isSearching || loading}
-                    >
-                      Clear Filters
-                    </button>
-                  </div>
-                  {(isFiltering || isSearching) && (
-                    <div className="p-4 sm:p-6 text-center">
-                      <svg
-                        className="animate-spin h-5 w-5 text-[#1A3329] mx-auto"
-                        xmlns="http://www.w3.org/2000/svg"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                      >
-                        <circle
-                          className="opacity-25"
-                          cx="12"
-                          cy="12"
-                          r="10"
-                          stroke="currentColor"
-                          strokeWidth="4"
-                        />
-                        <path
-                          className="opacity-75"
-                          fill="currentColor"
-                          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                        />
-                      </svg>
-                      <p className="text-sm sm:text-base">
-                        {isFiltering ? "Filtering orders..." : "Searching orders..."}
-                      </p>
-                    </div>
-                  )}
-                  {filteredOrders.length > 0 ? (
-                    <div className="overflow-x-auto">
-                      <table className="min-w-full table-auto">
-                        <thead className="bg-gray-100">
-                          <tr>
-                            <th className="py-2 px-3 sm:px-4 md:px-6 text-left text-xs sm:text-sm font-semibold text-gray-900">
-                              Order ID
-                            </th>
-                            <th className="py-2 px-3 sm:px-4 md:px-6 text-left text-xs sm:text-sm font-semibold text-gray-900">
-                              Customer
-                            </th>
-                            <th className="py-2 px-3 sm:px-4 md:px-6 text-left text-xs sm:text-sm font-semibold text-gray-900">
-                              Date
-                            </th>
-                            <th className="py-2 px-3 sm:px-4 md:px-6 text-left text-xs sm:text-sm font-semibold text-gray-900">
-                              Total
-                            </th>
-                            <th className="py-2 px-3 sm:px-4 md:px-6 text-left text-xs sm:text-sm font-semibold text-gray-900">
-                              Payment
-                            </th>
-                            <th className="py-2 px-3 sm:px-4 md:px-6 text-left text-xs sm:text-sm font-semibold text-gray-900">
-                              Actions
-                            </th>
-                          </tr>
-                        </thead>
-                        <tbody>
-                          {filteredOrders.map((order) => (
-                            <OrderRow
-                              key={order.orderId}
-                              order={order}
-                              onViewDetails={handleViewOrderDetails}
-                            />
-                          ))}
-                        </tbody>
-                      </table>
-                    </div>
-                  ) : (
-                    <EmptyState message="No Orders Found for Selected Filters or Search" />
-                  )}
-                </>
-              ) : (
-                <div className="p-4 sm:p-6">
-                  <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center mb-4 gap-2">
-                    <button
-                      onClick={() => setSelectedOrder(null)}
-                      className="text-[#1A3329] hover:text-[#2F6844] text-sm sm:text-base"
-                      disabled={loading}
-                    >
-                      ← Back to Orders
-                    </button>
-                    <button
-                      onClick={() => downloadOrderPDF(selectedOrder)}
-                      className="bg-[#1A3329] hover:bg-[#2F6844] text-white px-3 py-1.5 sm:px-4 sm:py-2 rounded-md transition-colors duration-300 flex items-center text-sm sm:text-base"
-                      disabled={loading}
-                    >
-                      <svg
-                        className="h-4 w-4 sm:h-5 sm:w-5 mr-2"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor"
-                      >
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2}
-                          d="M4 16v2a2 2 0 002 2h12a2 2 0 002-2v-2M7 10l5 5m0 0l5-5m-5 5V3"
-                        />
-                      </svg>
-                      Download PDF
-                    </button>
-                  </div>
-                  <h2 className="text-xl sm:text-2xl font-bold text-gray-900 mb-4">
-                    Order Details: {selectedOrder.orderId}
-                  </h2>
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6">
-                    <div>
-                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
-                        Customer Information
-                      </h3>
-                      <p className="text-sm sm:text-base">{`${selectedOrder.customer.firstName} ${selectedOrder.customer.lastName}`}</p>
-                      <p className="text-sm sm:text-base">{selectedOrder.customer.email}</p>
-                      <p className="text-sm sm:text-base">{selectedOrder.customer.phone}</p>
-                    </div>
-                    <div>
-                      <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
-                        Shipping Details
-                      </h3>
-                      <p className="text-sm sm:text-base">{selectedOrder.shippingAddress.address1}</p>
-                      {selectedOrder.shippingAddress.address2 && (
-                        <p className="text-sm sm:text-base">{selectedOrder.shippingAddress.address2}</p>
-                      )}
-                      <p className="text-sm sm:text-base">{`${selectedOrder.shippingAddress.city}, ${selectedOrder.shippingAddress.state} - ${selectedOrder.shippingAddress.pincode}`}</p>
-                      <p className="text-sm sm:text-base">Shipping Method: {selectedOrder.shippingMethod?.type || "N/A"}</p>
-                    </div>
-                  </div>
-                 <div className="mt-4 sm:mt-6">
-  <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
-    Items Purchased
-  </h3>
-  {selectedOrder.items.map((item, index) => (
-    <div key={index} className="flex justify-between py-2 border-b text-sm sm:text-base">
-      <span>{item.name} (x{item.quantity})</span>
-      <span>₹{(item.price * item.quantity).toLocaleString("en-IN")}</span>
-    </div>
-  ))}
-  
-  {/* Order Summary */}
-  <div className="mt-4 space-y-2">
-    <div className="flex justify-between text-sm sm:text-base">
-      <span>Subtotal</span>
-      <span>₹{selectedOrder.items.reduce((sum, item) => sum + (item.price * item.quantity), 0).toLocaleString("en-IN")}</span>
-    </div>
-    <div className="flex justify-between text-sm sm:text-base">
-      <span>Shipping ({selectedOrder.shippingMethod?.type || 'Standard'})</span>
-      <span>{selectedOrder.shippingMethod?.cost === 0 ? 'Free' : `₹${selectedOrder.shippingMethod?.cost?.toLocaleString("en-IN") || '0'}`}</span>
-    </div>
-    {selectedOrder.coupon?.code && selectedOrder.coupon?.discount > 0 && (
-      <div className="flex justify-between text-sm sm:text-base text-green-600">
-        <span>Coupon ({selectedOrder.coupon.code})</span>
-        <span>-₹{selectedOrder.coupon.discount.toLocaleString("en-IN")}</span>
-      </div>
-    )}
-    <div className="flex justify-between font-bold pt-2 border-t text-sm sm:text-base">
-      <span>Total</span>
-      <span>₹{selectedOrder.total.toLocaleString("en-IN")}</span>
-    </div>
-  </div>
-</div>
-                  <div className="mt-4 sm:mt-6">
-                    <h3 className="text-base sm:text-lg font-semibold text-gray-900 mb-2">
-                      Payment Information
-                    </h3>
-                    <p className="text-sm sm:text-base">Payment Method: {selectedOrder.paymentMethod}</p>
-                    {selectedOrder.paymentMethod !== "COD" && (
-                      <>
-                        <p className="text-sm sm:text-base">Payment ID: {selectedOrder.razorpayPaymentId || "N/A"}</p>
-                        <p className="text-sm sm:text-base">Razorpay Order ID: {selectedOrder.razorpayOrderId || "N/A"}</p>
-                        <p className="text-sm sm:text-base">Status: {selectedOrder.paymentStatus || "N/A"}</p>
-                      </>
-                    )}
-                  </div>
-                </div>
-              )}
-            </>
-          )}
-        </div>
+      {/* Sidebar */}
+      <Sidebar
+        activeTab={activeTab}
+        sidebarOpen={sidebarOpen}
+        sseConnected={sseConnected}
+        onNav={handleNav}
+        onClose={() => setSidebarOpen(false)}
+        onLogout={handleLogout}
+      />
+
+      {/* Delete confirmation */}
+      <DeleteModal
+        deleteTarget={deleteTarget}
+        setDeleteTarget={setDeleteTarget}
+        handleDeleteProduct={handleDeleteProduct}
+      />
+
+      {/* Mobile overlay */}
+      {sidebarOpen && (
+        <div
+          className="fixed inset-0 z-30 bg-black/20 backdrop-blur-[2px] lg:hidden"
+          onClick={() => setSidebarOpen(false)}
+        />
+      )}
+
+      {/* Main area */}
+      <div className="lg:pl-[250px] transition-all duration-300">
+        <Header
+          activeTab={activeTab}
+          sseConnected={sseConnected}
+          onMenuClick={() => setSidebarOpen(true)}
+          adminName={adminName}
+        />
+
+        <main className="p-6 sm:p-8 lg:p-10 max-w-[1360px] mx-auto">
+          {renderContent()}
+        </main>
       </div>
     </div>
   );
 };
 
-export default React.memo(AdminDashboard);
+export default AdminDashboard;

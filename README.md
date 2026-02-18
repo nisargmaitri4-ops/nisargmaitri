@@ -1,12 +1,69 @@
-# React + Vite
+# Nisargmaitri - E-commerce Platform
 
-This template provides a minimal setup to get React working in Vite with HMR and some ESLint rules.
+A full-stack e-commerce platform for sustainable and eco-friendly products.
 
-Currently, two official plugins are available:
+## 🌿 Project Structure (Unified for Vercel Deployment)
 
-- [@vitejs/plugin-react](https://github.com/vitejs/vite-plugin-react/blob/main/packages/plugin-react/README.md) uses [Babel](https://babeljs.io/) for Fast Refresh
-- [@vitejs/plugin-react-swc](https://github.com/vitejs/vite-plugin-react-swc) uses [SWC](https://swc.rs/) for Fast Refresh
+```
+nisargmaitri-frontend/
+├── api/                       # Backend (Serverless Functions)
+│   ├── index.js              # Vercel serverless entry point
+│   ├── server.js             # Express server
+│   ├── createAdmin.js        # Admin user creation script
+│   ├── models/               # Mongoose models
+│   ├── routes/               # API routes
+│   ├── middleware/           # Express middleware
+│   └── utils/                # Utility functions
+│
+├── src/                       # Frontend Source
+│   ├── App.jsx               # Main App component
+│   └── services/             # API services
+│
+├── components/               # React components
+├── public/                   # Static assets
+├── .env                      # Single environment file
+└── vercel.json               # Vercel configuration
+```
 
-## Expanding the ESLint configuration
+## 🚀 Getting Started
 
-If you are developing a production application, we recommend using TypeScript and enable type-aware lint rules. Check out the [TS template](https://github.com/vitejs/vite/tree/main/packages/create-vite/template-react-ts) to integrate TypeScript and [`typescript-eslint`](https://typescript-eslint.io) in your project.
+### Setup
+
+1. **Install dependencies:**
+
+   ```bash
+   npm install
+   ```
+
+2. **Create environment file:**
+
+   ```bash
+   cp .env.example .env
+   ```
+
+3. **Configure `.env` with your values**
+
+4. **Create admin user:**
+   ```bash
+   cd api && node createAdmin.js
+   ```
+
+### Running Locally
+
+```bash
+# Run both frontend and backend
+npm run dev:all
+
+# Or separately:
+npm run dev:server  # Backend on :5001
+npm run dev         # Frontend on :5173
+```
+
+## 🚀 Deployment on Vercel
+
+1. Push to GitHub
+2. Connect to Vercel
+3. Set Environment Variables in Vercel Dashboard
+4. Deploy!
+
+**Website:** [www.nisargmaitri.in](https://www.nisargmaitri.in)

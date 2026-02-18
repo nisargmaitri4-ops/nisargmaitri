@@ -1,845 +1,777 @@
-import React, { useState, useEffect, useCallback, useRef } from 'react';
-import { useNavigate } from 'react-router-dom';
-import axios from 'axios';
+import React, { useState, useEffect, useCallback, useRef, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
+import axios from "axios";
 
-// Comprehensive product data based on real Nisarg Maitri offerings
-const SAMPLE_PRODUCTS = [
-  { 
-    id: 1, 
-    name: 'Bamboo Toothbrush', 
-    price: 40, 
-    originalPrice: 60,
-    category: 'Bamboo', 
-    description: 'Eco-friendly bamboo toothbrush with soft bristles', 
-    rating: 4.5,
-    reviews: 342,
-    tags: ['dental', 'hygiene', 'sustainable', 'biodegradable', 'daily-use'],
-    benefits: ['Zero plastic', 'Compostable handle', 'Antibacterial properties', 'Soft on gums'],
-    inStock: true,
-    stockCount: 156,
-    image: '🦷',
-    features: ['100% bamboo handle', 'BPA-free bristles', '6-month replacement cycle', 'Eco packaging']
-  },
-  { 
-    id: 2, 
-    name: 'Medical Grade Menstrual Cup', 
-    price: 299, 
-    originalPrice: 450,
-    category: 'Menstrual', 
-    description: 'Medical-grade silicone menstrual cup - 10+ year lifespan', 
-    rating: 4.8,
-    reviews: 1247,
-    tags: ['health', 'women', 'reusable', 'medical-grade', 'period-care'],
-    benefits: ['Saves ₹20,000+ over lifetime', '12-hour protection', 'Chemical-free', 'Eco-friendly'],
-    inStock: true,
-    stockCount: 89,
-    image: '🌸',
-    features: ['FDA approved silicone', 'Available in 2 sizes', 'Leak-proof design', 'Sterilization cup included']
-  },
-  { 
-    id: 3, 
-    name: 'Insulated Steel Water Bottle', 
-    price: 199, 
-    originalPrice: 299,
-    category: 'Steel', 
-    description: 'Double-wall insulated stainless steel bottle', 
-    rating: 4.6,
-    reviews: 567,
-    tags: ['hydration', 'insulated', 'durable', 'bpa-free', 'travel'],
-    benefits: ['24hr cold retention', '12hr hot retention', 'Leak-proof', 'Scratch resistant'],
-    inStock: true,
-    stockCount: 234,
-    image: '💧',
-    features: ['Food-grade steel', '500ml/750ml/1L sizes', 'Wide mouth design', 'Non-slip base']
-  },
-  { 
-    id: 4, 
-    name: 'Portable Bamboo Cutlery Set', 
-    price: 199, 
-    originalPrice: 250,
-    category: 'Bamboo', 
-    description: 'Travel-friendly bamboo cutlery with organic cotton pouch', 
-    rating: 4.4,
-    reviews: 423,
-    tags: ['portable', 'dining', 'travel', 'lightweight', 'zero-waste'],
-    benefits: ['Ultra portable', 'Dishwasher safe', 'Plastic alternative', 'Includes cleaning brush'],
-    inStock: true,
-    stockCount: 178,
-    image: '🍴',
-    features: ['Fork, spoon, knife, chopsticks', 'Organic cotton pouch', 'Lightweight design', 'Natural finish']
-  },
-  { 
-    id: 5, 
-    name: 'Reusable Bamboo Makeup Pads', 
-    price: 69, 
-    originalPrice: 99,
-    category: 'Reusable', 
-    description: 'Set of 10 washable bamboo fiber makeup remover pads', 
-    rating: 4.7,
-    reviews: 891,
-    tags: ['beauty', 'skincare', 'washable', 'soft', 'daily-care'],
-    benefits: ['500+ wash cycles', 'Ultra soft texture', 'Chemical-free', 'Mesh laundry bag included'],
-    inStock: true,
-    stockCount: 267,
-    image: '💄',
-    features: ['Bamboo fiber blend', 'Different textures available', 'Quick drying', 'Hypoallergenic']
-  },
-  {
-    id: 6,
-    name: 'Organic Cotton Tote Bag',
-    price: 149,
-    originalPrice: 199,
-    category: 'Cotton',
-    description: 'Heavy-duty organic cotton shopping tote bag',
-    rating: 4.3,
-    reviews: 234,
-    tags: ['shopping', 'organic', 'durable', 'versatile', 'plastic-free'],
-    benefits: ['Holds 15kg weight', 'Machine washable', 'Plastic bag alternative', 'Long handles'],
-    inStock: true,
-    stockCount: 145,
-    image: '👜',
-    features: ['GOTS certified cotton', 'Reinforced stitching', 'Large capacity', 'Foldable design']
-  },
-  {
-    id: 7,
-    name: 'Adjustable Bamboo Phone Stand',
-    price: 89,
-    originalPrice: 120,
-    category: 'Bamboo',
-    description: 'Multi-angle bamboo phone and tablet stand',
-    rating: 4.5,
-    reviews: 156,
-    tags: ['tech', 'workspace', 'adjustable', 'stable', 'office'],
-    benefits: ['7 viewing angles', 'Anti-slip base', 'Cable management slot', 'Tablet compatible'],
-    inStock: false,
-    stockCount: 0,
-    image: '📱',
-    features: ['Universal compatibility', 'Foldable design', 'Natural bamboo finish', 'Ventilation holes']
-  },
-  {
-    id: 8,
-    name: '3-Tier Steel Lunch Box',
-    price: 399,
-    originalPrice: 499,
-    category: 'Steel',
-    description: 'Stackable stainless steel lunch box with airtight seal',
-    rating: 4.6,
-    reviews: 312,
-    tags: ['food', 'compartments', 'airtight', 'healthy', 'work'],
-    benefits: ['100% leak-proof', '3 separate compartments', 'Microwave safe', 'Easy to clean'],
-    inStock: true,
-    stockCount: 67,
-    image: '🍱',
-    features: ['Vacuum seal technology', 'Insulated design', 'Compact stacking', 'BPA-free']
-  },
-  {
-    id: 9,
-    name: 'Natural Bamboo Drinking Straws',
-    price: 79,
-    originalPrice: 99,
-    category: 'Bamboo',
-    description: 'Set of 5 handcrafted bamboo drinking straws',
-    rating: 4.4,
-    reviews: 445,
-    tags: ['drinks', 'natural', 'reusable', 'party', 'kids-safe'],
-    benefits: ['100% natural', 'Kid-friendly', 'Cleaning brush included', 'Biodegradable'],
-    inStock: true,
-    stockCount: 289,
-    image: '🥤',
-    features: ['Hand-selected bamboo', 'Different sizes', 'Smooth finish', 'Organic cotton pouch']
-  },
-  {
-    id: 10,
-    name: 'Eco-Friendly Bamboo Razor',
-    price: 149,
-    originalPrice: 199,
-    category: 'Bamboo',
-    description: 'Double-edge bamboo handle safety razor',
-    rating: 4.3,
-    reviews: 167,
-    tags: ['grooming', 'men', 'women', 'plastic-free', 'premium'],
-    benefits: ['Reduces plastic waste', 'Cost-effective blades', 'Superior shave quality', 'Durable design'],
-    inStock: true,
-    stockCount: 92,
-    image: '🪒',
-    features: ['Replaceable blades', 'Ergonomic grip', 'Chrome-plated head', 'Blade disposal slot']
-  }
-];
-
-// Comprehensive eco-tips database
-const ECO_TIPS_DATABASE = {
-  beginner: [
-    { tip: "Start with one reusable item daily", impact: "Reduces 365+ plastic items yearly" },
-    { tip: "Use bamboo toothbrush", impact: "Prevents 4+ plastic brushes in landfills yearly" },
-    { tip: "Carry reusable water bottle", impact: "Saves 1000+ plastic bottles annually" },
-    { tip: "Switch to LED bulbs", impact: "Uses 80% less energy than traditional bulbs" },
-    { tip: "Use both sides of paper", impact: "Reduces paper consumption by 50%" }
-  ],
-  intermediate: [
-    { tip: "Start composting kitchen waste", impact: "Reduces household waste by 30%" },
-    { tip: "Use menstrual cups instead of disposables", impact: "Saves ₹20,000+ and reduces waste" },
-    { tip: "Make DIY cleaning products", impact: "Eliminates chemical packaging waste" },
-    { tip: "Buy in bulk to reduce packaging", impact: "Cuts packaging waste by 60%" },
-    { tip: "Use cold water for washing clothes", impact: "Saves 90% of washing energy" }
-  ],
-  advanced: [
-    { tip: "Install solar panels or use renewable energy", impact: "Reduces carbon footprint by tons" },
-    { tip: "Create a zero-waste bathroom", impact: "Eliminates 100+ plastic items yearly" },
-    { tip: "Start urban gardening", impact: "Reduces transport emissions & plastic packaging" },
-    { tip: "Use electric or hybrid vehicles", impact: "Reduces transport emissions by 50%+" },
-    { tip: "Practice minimalism in purchases", impact: "Dramatically reduces overall consumption" }
-  ]
+/* ─────────────── helpers ─────────────── */
+const API = () => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  if (import.meta.env.PROD) return "";
+  return "http://localhost:5001";
 };
 
-// FAQ Database
-const FAQ_DATABASE = [
-  {
-    question: "How long do bamboo products last?",
-    answer: "Bamboo toothbrushes last 3-4 months, cutlery sets last 2-3 years, and other bamboo items typically last 1-5 years depending on usage. They're designed to be durable yet biodegradable."
-  },
-  {
-    question: "Are menstrual cups safe?",
-    answer: "Yes! Our menstrual cups are made from medical-grade silicone, FDA approved, and completely safe. They can be used for 10+ years with proper care and provide 12-hour protection."
-  },
-  {
-    question: "How do I clean bamboo products?",
-    answer: "Most bamboo products are dishwasher safe or can be hand-washed with mild soap. For toothbrushes, rinse with water and let air dry. Avoid soaking in water for extended periods."
-  },
-  {
-    question: "What's your return policy?",
-    answer: "We offer 30-day returns for unused products. If you're not satisfied with your eco-friendly purchase, contact us at support@nisargmaitri.com for hassle-free returns."
-  },
-  {
-    question: "Do you offer bulk discounts?",
-    answer: "Yes! We offer 15% off on orders above ₹1000, 20% off above ₹2000, and custom pricing for bulk orders. Perfect for offices, schools, and organizations going green!"
-  }
+const money = (n) => `₹${Number(n).toLocaleString("en-IN")}`;
+
+/* ─────────────── knowledge base ─────────────── */
+const COMPANY = {
+  name: "Nisarg Maitri",
+  tagline: "Sustainable Living, Naturally",
+  phone: "+91 9999010997",
+  email: "nisargmaitri4@gmail.com",
+  website: "www.nisargmaitri.in",
+  address1:
+    "Parsvnath Edens, Near Ryan International School, Alpha 2, Greater Noida – 201306",
+  address2: "Tilak Nagar, Indore, Madhya Pradesh",
+  hours: "Mon – Sat, 9 AM – 6 PM IST",
+  shipping: "Pan-India delivery. Free shipping on orders above ₹500.",
+  returns: "30-day hassle-free returns on unused products.",
+  categories: ["Bamboo", "Steel", "Menstrual", "Zero Waste"],
+};
+
+const FAQ = [
+  { q: "shipping", a: `🚚 ${COMPANY.shipping} Orders typically reach you within 5-7 business days.` },
+  { q: "return",   a: `🔄 ${COMPANY.returns} Just reach out to us and we'll handle the rest.` },
+  { q: "contact",  a: `📞 **Phone / WhatsApp:** ${COMPANY.phone}\n📧 **Email:** ${COMPANY.email}\n📍 **Office:** ${COMPANY.address1}\n⏰ **Hours:** ${COMPANY.hours}` },
+  { q: "payment",  a: "💳 We accept UPI, Credit/Debit Cards, Net Banking, and Cash on Delivery (COD)." },
+  { q: "bamboo_info", a: "🎋 Bamboo products are 100% natural, biodegradable, and antibacterial. They typically last 1-5 years. Bamboo grows 30× faster than trees and absorbs 35% more CO₂!" },
+  { q: "menstrual_info", a: "🌸 Our menstrual cups are made from medical-grade silicone, FDA approved, and last 10+ years. They provide 12 hours of leak-free protection and save over ₹20,000 compared to disposables." },
+  { q: "steel_info", a: "🥤 Our stainless steel products are food-grade, 100% recyclable, BPA-free, and built to last a lifetime. Steel retains temperature for hours and never leaches chemicals." },
+  { q: "clean",    a: "🧼 Most of our products are easy to clean — bamboo items can be hand-washed with mild soap, steel products are dishwasher-safe, and menstrual cups can be sterilized by boiling for 5 minutes." },
+  { q: "bulk",     a: "📦 Yes! We offer bulk discounts — 15% off on ₹1,000+, 20% off on ₹2,000+. Perfect for offices, schools, and corporate gifting. Contact us for custom quotes." },
+  { q: "safe",     a: "✅ All our products are rigorously tested. Bamboo is naturally antibacterial, our steel is food-grade 304, and menstrual cups are medical-grade silicone — completely safe for daily use." },
 ];
 
+const ECO_TIPS = [
+  "🪥 Switch to a bamboo toothbrush — it prevents 4+ plastic brushes from ending up in landfills every year.",
+  "💧 Carry a reusable steel water bottle — it can save 1,000+ single-use plastic bottles annually.",
+  "🌸 One menstrual cup replaces 2,400+ disposable pads over its lifetime and saves over ₹20,000.",
+  "🍴 Keep a bamboo cutlery set in your bag — never use plastic forks and spoons again.",
+  "🧴 Switch to reusable makeup remover pads — one set replaces 1,000+ cotton pads.",
+  "🛍️ Always carry a cloth tote bag — India uses 15,000 crore plastic bags every year.",
+  "♻️ Start composting kitchen waste — it reduces household waste by 30% and enriches your garden.",
+  "💡 Choose products with minimal packaging — packaging accounts for 40% of all plastic waste.",
+];
+
+/* ─────────────── intent detection ─────────────── */
+const INTENTS = [
+  { key: "greeting",  rx: /^(hi|hello|hey|namaste|good\s*(morning|afternoon|evening)|howdy|sup)\b/i },
+  { key: "products",  rx: /\b(product|item|shop|buy|purchase|order|catalog|collection|show me|what do you sell|what you have|show all)\b/i },
+  { key: "price",     rx: /\b(price|cost|how much|expensive|cheap|affordable|budget|under|below)\b/i },
+  { key: "category",  rx: /\b(bamboo|steel|menstrual|zero.?waste|cup|bottle|toothbrush|cutlery|straw|razor|tote|bag|lunch.?box|tumbler|pad|makeup)\b/i },
+  { key: "shipping",  rx: /\b(ship|deliver|dispatch|courier|track|when will|delivery)\b/i },
+  { key: "return",    rx: /\b(return|refund|exchange|replace|cancel)\b/i },
+  { key: "contact",   rx: /\b(contact|phone|email|call|whatsapp|address|office|location|reach|support)\b/i },
+  { key: "payment",   rx: /\b(pay|payment|upi|card|cod|cash on delivery|net banking|razorpay)\b/i },
+  { key: "clean",     rx: /\b(clean|wash|maintain|care|sterilize|hygiene)\b/i },
+  { key: "bulk",      rx: /\b(bulk|wholesale|corporate|gift|discount|coupon|offer)\b/i },
+  { key: "safe",      rx: /\b(safe|safety|chemical|toxic|bpa|certified|fda|quality|durable|last)\b/i },
+  { key: "eco",       rx: /\b(eco|green|sustain|environment|planet|recycle|compost|tip|advice|impact)\b/i },
+  { key: "about",     rx: /\b(about|who are you|what is nisarg|tell me about|company|brand|mission|story)\b/i },
+  { key: "thanks",    rx: /\b(thank|thanks|thx|appreciate)\b/i },
+  { key: "bye",       rx: /\b(bye|goodbye|see you|exit|close|quit)\b/i },
+];
+
+const detect = (text) => {
+  const t = text.toLowerCase().trim();
+  for (const { key, rx } of INTENTS) if (rx.test(t)) return key;
+  return "unknown";
+};
+
+const parseBudget = (text) => {
+  const m = text.match(
+    /(?:under|below|around|budget|within|upto|up to|max|less than)?\s*₹?\s*(\d{2,5})/i,
+  );
+  return m ? parseInt(m[1], 10) : null;
+};
+
+const parseCategory = (text) => {
+  const t = text.toLowerCase();
+  if (/bamboo|toothbrush|cutlery|straw|razor/.test(t)) return "Bamboo";
+  if (/steel|bottle|lunch.?box|tumbler/.test(t)) return "Steel";
+  if (/menstrual|cup|period/.test(t)) return "Menstrual";
+  if (/zero.?waste|tote|bag|pad|makeup/.test(t)) return "Zero Waste";
+  return null;
+};
+
+/* ─────────────── markdown renderer ─────────────── */
+const Md = ({ text }) => {
+  if (!text) return null;
+  return (
+    <div className="space-y-1 text-[13px] leading-[1.6]">
+      {text.split("\n").map((line, i) => {
+        const parts = line.split(/(\*\*.*?\*\*)/g).map((seg, j) =>
+          seg.startsWith("**") && seg.endsWith("**") ? (
+            <strong key={j} className="font-semibold">{seg.slice(2, -2)}</strong>
+          ) : (
+            <span key={j}>{seg}</span>
+          ),
+        );
+        return <p key={i} className="min-h-[1.1em]">{parts}</p>;
+      })}
+    </div>
+  );
+};
+
+/* ─────────────── product card ─────────────── */
+const ProductCard = ({ p, onView }) => (
+  <div className="flex items-center gap-3 bg-gray-50/80 rounded-xl p-2.5 border border-gray-100/80 hover:border-gray-200 transition group">
+    {p.image ? (
+      <img
+        src={p.image}
+        alt={p.name}
+        className="w-12 h-12 rounded-lg object-cover bg-white border border-gray-100 flex-shrink-0"
+        onError={(e) => {
+          e.target.style.display = "none";
+        }}
+      />
+    ) : (
+      <div className="w-12 h-12 rounded-lg bg-[#1A3329]/8 flex items-center justify-center text-base flex-shrink-0">
+        🌿
+      </div>
+    )}
+    <div className="flex-1 min-w-0">
+      <p className="text-[12.5px] font-semibold text-gray-800 truncate">{p.name}</p>
+      <div className="flex items-center gap-2 mt-0.5">
+        <span className="text-[12.5px] font-bold text-[#1A3329]">{money(p.price)}</span>
+        {p.comparePrice > p.price && (
+          <span className="text-[10.5px] text-gray-400 line-through">{money(p.comparePrice)}</span>
+        )}
+        <span className="text-[10px] text-gray-400">· {p.category}</span>
+      </div>
+    </div>
+    <button
+      onClick={onView}
+      className="flex-shrink-0 text-[10.5px] font-semibold px-3 py-1.5 rounded-lg bg-[#1A3329] text-white hover:bg-[#2F6844] transition cursor-pointer opacity-80 group-hover:opacity-100"
+    >
+      View
+    </button>
+  </div>
+);
+
+/* ═══════════════════════════════════════════
+   CHATBOT
+   ═══════════════════════════════════════════ */
 const Chatbot = () => {
-  const [isOpen, setIsOpen] = useState(false);
-  const [messages, setMessages] = useState([
-    {
-      id: 1,
-      text: "Namaste! 🙏 I'm EcoBot, your personal sustainability companion from Nisarg Maitri! 🌱\n\n✨ **I'm here to help you with:**\n🛍️ Smart Product Recommendations\n🌱 Personalized Eco Tips & Advice\n💡 Sustainable Living Guidance\n📊 Product Comparisons & Reviews\n🎯 Eco-Impact Calculations\n❓ Expert Q&A on Green Living\n\n**Ready to start your eco-journey?** Ask me anything or try the quick buttons below! 😊",
-      isBot: true,
-      timestamp: new Date(),
-    },
-  ]);
-  const [inputMessage, setInputMessage] = useState('');
-  const [isTyping, setIsTyping] = useState(false);
-  const [products] = useState(SAMPLE_PRODUCTS);
-  const [userName, setUserName] = useState('');
-  const [userProfile, setUserProfile] = useState({
-    preferences: [],
-    budget: null,
-    location: '',
-    interests: [],
-    ecoLevel: 'beginner', // beginner, intermediate, advanced
-    purchaseHistory: []
-  });
-  const [conversationContext, setConversationContext] = useState({
-    lastTopic: '',
-    currentFlow: '',
-    recommendedProducts: [],
-    askedQuestions: [],
-    userIntent: ''
-  });
-  const [chatPersonality, setChatPersonality] = useState('friendly'); // friendly, expert, casual
-  const messagesEndRef = useRef(null);
   const navigate = useNavigate();
 
-  // Dynamic quick replies based on context and user profile
-  const getDynamicQuickReplies = () => {
-    const contextualReplies = [];
-    
-    if (!userName) {
-      contextualReplies.push({ text: '👋 Hi, I\'m new!', keyword: 'new_user', priority: 1 });
-    }
-    
-    if (!userProfile.budget) {
-      contextualReplies.push({ text: '💰 Set My Budget', keyword: 'set_budget', priority: 2 });
-    }
-    
-    // Base replies
-    const baseReplies = [
-      { text: '🛍️ Show Products', keyword: 'products', priority: 1 },
-      { text: '🌱 Eco Tips', keyword: 'tips', priority: 1 },
-      { text: '⭐ Best Sellers', keyword: 'bestsellers', priority: 2 },
-      { text: '🆚 Compare Items', keyword: 'compare', priority: 3 },
-      { text: '❓ Ask Expert', keyword: 'expert', priority: 2 },
-      { text: '🎯 For Me', keyword: 'personalized', priority: 1 },
-    ];
+  const [open, setOpen] = useState(false);
+  const [messages, setMessages] = useState([]);
+  const [input, setInput] = useState("");
+  const [typing, setTyping] = useState(false);
+  const [products, setProducts] = useState([]);
+  const [pulse, setPulse] = useState(true);
+  const endRef = useRef(null);
+  const inputRef = useRef(null);
 
-    return [...contextualReplies, ...baseReplies]
-      .sort((a, b) => a.priority - b.priority)
-      .slice(0, 6);
-  };
-
+  /* ── fetch real products ── */
   useEffect(() => {
-    messagesEndRef.current?.scrollIntoView({ behavior: 'smooth' });
-  }, [messages]);
-
-  const addBotMessage = useCallback((text, delay = 1200, suggestions = []) => {
-    setIsTyping(true);
-    setTimeout(() => {
-      const botMessage = {
-        id: Date.now(),
-        text,
-        isBot: true,
-        timestamp: new Date(),
-        suggestions: suggestions
-      };
-      setMessages(prev => [...prev, botMessage]);
-      setIsTyping(false);
-    }, delay);
+    axios
+      .get(API() + "/api/products")
+      .then((r) => setProducts(r.data.filter((p) => p.isActive)))
+      .catch(() => {});
   }, []);
 
-  // Advanced NLP for better intent recognition
-  const detectUserIntent = (input) => {
-    const lowerInput = input.toLowerCase();
-    
-    const intents = {
-      greeting: /^(hi|hello|hey|namaste|start|sup|yo)/,
-      product_search: /(show|find|search|looking for|need|want).*(product|item)/,
-      price_inquiry: /(price|cost|how much|expensive|cheap|budget)/,
-      comparison: /(compare|versus|vs|difference|better)/,
-      eco_tips: /(tip|advice|help|guide|sustainable|eco|green)/,
-      support: /(help|support|problem|issue|contact)/,
-      goodbye: /(bye|goodbye|see you|exit|close)/,
-      thanks: /(thank|thanks|appreciate)/
-    };
+  /* ── welcome message ── */
+  useEffect(() => {
+    if (messages.length === 0) {
+      setMessages([
+        {
+          id: 1,
+          role: "bot",
+          text: `Namaste! 🙏 Welcome to **${COMPANY.name}**.\n\nI can help you with:\n• Browse our eco-friendly products\n• Shipping & returns info\n• Payment options\n• Eco tips & sustainability advice\n• Contact & support\n\nHow can I help you today?`,
+          ts: Date.now(),
+        },
+      ]);
+    }
+  }, []);
 
-    for (const [intent, pattern] of Object.entries(intents)) {
-      if (pattern.test(lowerInput)) {
-        return intent;
+  /* ── auto scroll ── */
+  useEffect(() => {
+    endRef.current?.scrollIntoView({ behavior: "smooth" });
+  }, [messages, typing]);
+
+  /* ── focus on open ── */
+  useEffect(() => {
+    if (open) {
+      setPulse(false);
+      setTimeout(() => inputRef.current?.focus(), 300);
+    }
+  }, [open]);
+
+  /* ── response engine ── */
+  const buildReply = useCallback(
+    (text) => {
+      const intent = detect(text);
+      const budget = parseBudget(text);
+      const cat = parseCategory(text);
+
+      /* greeting */
+      if (intent === "greeting") {
+        return {
+          text: `Hello! 👋 Welcome to **${COMPANY.name}** — India's trusted eco-friendly brand.\n\nWhat would you like to know about?`,
+          followUp: [
+            { label: "🛍️ Show Products", val: "Show me your products" },
+            { label: "🌱 Eco Tips", val: "Give me eco tips" },
+            { label: "ℹ️ About Us", val: "Tell me about Nisarg Maitri" },
+          ],
+        };
       }
-    }
-    return 'general';
-  };
 
-  // Smart product recommendation engine
-  const getSmartRecommendations = (userInput = '', context = {}) => {
-    const lowerInput = userInput.toLowerCase();
-    let scored = products.map(product => {
-      let score = 0;
-      
-      // Keyword matching
-      product.tags.forEach(tag => {
-        if (lowerInput.includes(tag)) score += 3;
-      });
-      
-      // Category matching
-      if (lowerInput.includes(product.category.toLowerCase())) score += 4;
-      
-      // Name matching
-      if (lowerInput.includes(product.name.toLowerCase())) score += 5;
-      
-      // Budget preference
-      if (userProfile.budget) {
-        if (product.price <= userProfile.budget) score += 2;
-        if (product.price > userProfile.budget * 1.5) score -= 3;
+      /* about */
+      if (intent === "about") {
+        return {
+          text: `**${COMPANY.name}** is on a mission to make sustainable living accessible to every Indian household.\n\nWe offer carefully curated eco-friendly products across **Bamboo, Stainless Steel, Menstrual Care**, and **Zero Waste** categories — all tested for quality, safety, and minimal environmental impact.\n\n📍 Based in Greater Noida & Indore\n📞 ${COMPANY.phone}\n📧 ${COMPANY.email}`,
+          followUp: [
+            { label: "🛍️ Browse Products", val: "Show me your products" },
+            { label: "📞 Contact Info", val: "How can I contact you?" },
+            { label: "🚚 Shipping Info", val: "How does shipping work?" },
+          ],
+        };
       }
-      
-      // Rating and popularity
-      score += (product.rating * product.reviews) / 500;
-      
-      // Stock availability
-      if (product.inStock) score += 1;
-      else score -= 5;
-      
-      // User profile matching
-      if (userProfile.preferences.includes(product.category)) score += 2;
-      
-      return { ...product, score };
-    });
-    
-    return scored
-      .filter(p => p.score > 0)
-      .sort((a, b) => b.score - a.score);
-  };
 
-  // Enhanced response system with personality and context awareness
-  const getBotResponse = useCallback((input) => {
-    const lowerInput = input.toLowerCase().trim();
-    const intent = detectUserIntent(input);
-    
-    // Update conversation context
-    setConversationContext(prev => ({
-      ...prev,
-      userIntent: intent,
-      askedQuestions: [...prev.askedQuestions.slice(-4), lowerInput] // Keep last 5
-    }));
-
-    // Greeting with personality
-    if (intent === 'greeting' || lowerInput.match(/^(hi|hello|hey|namaste|start)/)) {
-      const greetings = [
-        "Namaste! 🙏 Welcome to your sustainable journey!",
-        "Hello there! 🌟 Ready to make Earth-friendly choices?",
-        "Hey! 👋 Excited to help you go green today!",
-        "Hi! 🌱 Let's explore amazing eco-friendly solutions together!"
-      ];
-      const randomGreeting = greetings[Math.floor(Math.random() * greetings.length)];
-      
-      return `${randomGreeting}\n\n💚 **I'm EcoBot from Nisarg Maitri** - your guide to sustainable living!\n\n🎯 **Tell me about yourself to get personalized recommendations:**\n• What's your eco-experience level?\n• Any specific products you're interested in?\n• What's your typical budget range?\n\n💬 **Or simply ask:** "Show me your best products" or "Give me beginner eco tips"`;
-    }
-
-    // Enhanced name collection with onboarding
-    const nameMatch = lowerInput.match(/(?:my name is|i am|call me|i'm)\s+([a-zA-Z\s]+)/);
-    if (nameMatch) {
-      const name = nameMatch[1].trim().split(' ')[0];
-      setUserName(name);
-      return `Wonderful to meet you, ${name}! 🎉\n\n🌟 **Welcome to the Nisarg Maitri family!** Now I can give you much more personalized help!\n\n🎯 **Quick setup to serve you better:**\n1️⃣ What's your eco-experience? (Beginner/Intermediate/Advanced)\n2️⃣ Any specific interests? (Health, Kitchen, Personal Care, etc.)\n3️⃣ Preferred budget range?\n\n💡 **Or jump right in:** "Show me popular products" or "I need something under ₹200"`;
-    }
-
-    // New user onboarding
-    if (intent === 'greeting' && lowerInput.includes('new')) {
-      return `Welcome to Nisarg Maitri! 🌱 **India's trusted eco-friendly brand since 2023!**\n\n✨ **Why choose us?**\n• 🏆 4.5+ star rated products\n• 🚚 Free shipping on ₹500+\n• 🔄 30-day easy returns\n• 🌍 10,000+ happy eco-warriors\n• 📞 Expert support: +91 9999010997\n\n🎯 **Perfect for beginners:**\n• Bamboo Toothbrush (₹40)\n• Reusable Water Bottle (₹199)\n• Makeup Remover Pads (₹69)\n\n**Ready to start?** What type of product interests you most?`;
-    }
-
-    // Budget setting with intelligence
-    if (lowerInput.includes('budget') || lowerInput.includes('set') && lowerInput.includes('budget')) {
-      const budgetRanges = [
-        { range: "Under ₹100", desc: "Essential eco-starters", products: "Bamboo toothbrush, Makeup pads, Straws" },
-        { range: "₹100-300", desc: "Quality daily-use items", products: "Water bottles, Cutlery sets, Cotton bags" },
-        { range: "₹300-500", desc: "Premium eco-solutions", products: "Lunch boxes, Menstrual cups, Razor sets" },
-        { range: "₹500+", desc: "Complete eco-lifestyle", products: "Product bundles, Gift sets, Bulk orders" }
-      ];
-      
-      const budgetList = budgetRanges.map(b => 
-        `💰 **${b.range}** - ${b.desc}\n   ${b.products}`
-      ).join('\n\n');
-      
-      return `💰 **Let's find your perfect budget range!**\n\n${budgetList}\n\n🎯 **Just tell me:** "My budget is ₹200" or "I want to spend around ₹150"\n\n💡 **Pro tip:** Higher budgets often mean better durability and longer-lasting products!`;
-    }
-
-    // Enhanced budget parsing
-    const budgetMatch = lowerInput.match(/budget.*?(\d+)|(\d+).*?budget|spend.*?(\d+)|around.*?(\d+)|under.*?(\d+)|below.*?(\d+)/);
-    if (budgetMatch) {
-      const budget = parseInt(budgetMatch[1] || budgetMatch[2] || budgetMatch[3] || budgetMatch[4] || budgetMatch[5] || budgetMatch[6]);
-      setUserProfile(prev => ({ ...prev, budget }));
-      
-      const budgetProducts = products.filter(p => p.price <= budget && p.inStock);
-      const perfectMatches = budgetProducts.slice(0, 3);
-      const nearBudget = products.filter(p => p.price <= budget * 1.2 && p.inStock).slice(0, 2);
-      
-      if (perfectMatches.length > 0) {
-        const productList = perfectMatches.map(p => 
-          `${p.image} **${p.name}** - ₹${p.price} ${p.originalPrice > p.price ? `~~₹${p.originalPrice}~~` : ''}\n   ⭐${p.rating} (${p.reviews} reviews) | ${p.benefits.slice(0, 2).join(' • ')}`
-        ).join('\n\n');
-        
-        const savings = perfectMatches.reduce((sum, p) => sum + (p.originalPrice - p.price), 0);
-        
-        return `Perfect! 🎯 **Your budget: ₹${budget}** \n\n🛍️ **Top ${perfectMatches.length} matches for you:**\n\n${productList}\n\n💰 **Total savings available: ₹${savings}**\n🚚 **Free shipping** ${budget >= 500 ? '✅' : 'on ₹500+ orders'}\n\n💡 **Want specific recommendations?** Try: "Show me bamboo products under ₹${budget}"`;
-      } else if (nearBudget.length > 0) {
-        const productList = nearBudget.map(p => `${p.image} ${p.name} - ₹${p.price}`).join('\n');
-        return `🤔 **Limited options at ₹${budget}**, but here are close matches:\n\n${productList}\n\n💡 **Suggestions:**\n• Increase to ₹${budget + 50} for ${products.filter(p => p.price <= budget + 50).length} more options\n• Check our combo offers for better value\n• Look for seasonal discounts\n\nWhat would you prefer?`;
+      /* FAQ lookups with follow-ups */
+      if (intent === "shipping") {
+        const faq = FAQ.find((f) => f.q === "shipping");
+        return {
+          text: faq.a,
+          followUp: [
+            { label: "🔄 Return Policy", val: "What is your return policy?" },
+            { label: "💳 Payment Options", val: "What payment methods do you accept?" },
+            { label: "🛍️ Browse Products", val: "Show me your products" },
+          ],
+        };
       }
-    }
-
-    // Expert Q&A system
-    if (lowerInput.includes('expert') || lowerInput.includes('question') || lowerInput.includes('ask')) {
-      const faqMatch = FAQ_DATABASE.find(faq => 
-        lowerInput.includes(faq.question.toLowerCase().split(' ').slice(0, 2).join(' '))
-      );
-      
-      if (faqMatch) {
-        return `🧠 **Expert Answer:**\n\n❓ **${faqMatch.question}**\n\n💡 ${faqMatch.answer}\n\n🎯 **More questions?** Ask about:\n• Product safety and certifications\n• Usage and maintenance tips\n• Environmental impact\n• Bulk pricing and discounts`;
+      if (intent === "return") {
+        const faq = FAQ.find((f) => f.q === "return");
+        return {
+          text: faq.a,
+          followUp: [
+            { label: "🚚 Shipping Info", val: "How does shipping work?" },
+            { label: "📞 Contact Support", val: "How can I contact you?" },
+            { label: "🛍️ Browse Products", val: "Show me your products" },
+          ],
+        };
       }
-      
-      return `🧠 **Ask Our Eco-Expert!**\n\n🔥 **Popular Questions:**\n\n${FAQ_DATABASE.slice(0, 3).map(faq => `❓ ${faq.question}`).join('\n')}\n\n💬 **Or ask anything about:**\n• Product safety & quality\n• Environmental benefits\n• Usage & maintenance\n• Bulk orders & discounts\n\n**Just ask naturally!** Like "Are bamboo products durable?" or "How to clean menstrual cups?"`;
-    }
-
-    // Enhanced product search with AI
-    if (intent === 'product_search' || lowerInput.includes('product') || lowerInput.includes('show') || lowerInput.includes('🛍️')) {
-      setConversationContext(prev => ({ ...prev, lastTopic: 'products' }));
-      const recommendations = getSmartRecommendations(lowerInput);
-      const topPicks = recommendations.slice(0, 4);
-      
-      if (topPicks.length > 0) {
-        const productList = topPicks.map(p => 
-          `${p.image} **${p.name}** - ₹${p.price} ${p.originalPrice > p.price ? `~~₹${p.originalPrice}~~` : ''}\n   ⭐${p.rating}/5 (${p.reviews} reviews) • ${p.inStock ? '✅ In Stock' : '❌ Out of Stock'}\n   💡 ${p.benefits.slice(0, 2).join(' • ')}\n   🏷️ ${p.features.slice(0, 2).join(' • ')}`
-        ).join('\n\n');
-        
-        const totalSavings = topPicks.reduce((sum, p) => sum + Math.max(0, p.originalPrice - p.price), 0);
-        
-        return `🛍️ **Perfect matches for you:**\n\n${productList}\n\n💰 **You save: ₹${totalSavings} total**\n🚚 **Free shipping on ₹500+**\n\n🎯 **Want more specific results?** Try:\n• "Show me bamboo products"\n• "I need something for daily use"\n• "What's best for ₹200?"`;
+      if (intent === "contact") {
+        const faq = FAQ.find((f) => f.q === "contact");
+        return {
+          text: faq.a,
+          followUp: [
+            { label: "🛍️ Browse Products", val: "Show me your products" },
+            { label: "📦 Bulk Orders", val: "Do you offer bulk discounts?" },
+            { label: "🚚 Shipping Info", val: "How does shipping work?" },
+          ],
+        };
       }
-    }
-
-    // Bestsellers and trending
-    if (lowerInput.includes('best') || lowerInput.includes('popular') || lowerInput.includes('trending') || lowerInput.includes('bestsellers')) {
-      const bestsellers = products
-        .filter(p => p.inStock)
-        .sort((a, b) => (b.rating * b.reviews) - (a.rating * a.reviews))
-        .slice(0, 3);
-        
-      const productList = bestsellers.map((p, index) => 
-        `${index + 1}️⃣ ${p.image} **${p.name}** - ₹${p.price}\n   🔥 ${p.reviews} happy customers • ⭐${p.rating}/5\n   ✨ ${p.benefits[0]} • ${p.features[0]}`
-      ).join('\n\n');
-      
-      return `🔥 **Top 3 Bestsellers** (Most loved by customers):\n\n${productList}\n\n🏆 **Why customers choose these:**\n• Proven quality & durability\n• Excellent user reviews  \n• Great value for money\n• Fast shipping & support\n\n**Want details about any of these?** Just ask! Or try "Compare these products"`;
-    }
-
-    // Enhanced category searches with detailed info
-    const categories = {
-      'bamboo': {
-        emoji: '🎋',
-        name: 'Bamboo Collection',
-        products: products.filter(p => p.category === 'Bamboo'),
-        benefits: ['100% Natural & Renewable', 'Biodegradable in 2-3 years', 'Antibacterial Properties', 'Carbon Negative Growth'],
-        facts: 'Bamboo grows 3x faster than trees and produces 35% more oxygen!'
-      },
-      'steel': {
-        emoji: '💧',
-        name: 'Stainless Steel Range',
-        products: products.filter(p => p.category === 'Steel'),
-        benefits: ['Food-Grade Safety', '100% Recyclable', 'Lifetime Durability', 'Temperature Retention'],
-        facts: 'Steel can be recycled infinitely without losing quality!'
-      },
-      'menstrual': {
-        emoji: '🌸',
-        name: 'Feminine Care',
-        products: products.filter(p => p.category === 'Menstrual'),
-        benefits: ['Medical-Grade Safe', 'Saves ₹20,000+ Lifetime', '10+ Year Lifespan', 'Chemical-Free'],
-        facts: 'One menstrual cup replaces 2,400+ disposable products!'
+      if (intent === "payment") {
+        const faq = FAQ.find((f) => f.q === "payment");
+        return {
+          text: faq.a,
+          followUp: [
+            { label: "🚚 Shipping Info", val: "How does shipping work?" },
+            { label: "🔄 Return Policy", val: "What is your return policy?" },
+            { label: "🛍️ Shop Now", val: "Show me your products" },
+          ],
+        };
       }
-    };
+      if (intent === "clean") {
+        const faq = FAQ.find((f) => f.q === "clean");
+        return {
+          text: faq.a,
+          followUp: [
+            { label: "✅ Safety & Quality", val: "Are your products safe?" },
+            { label: "🎋 Bamboo Products", val: "Show me bamboo products" },
+            { label: "🥤 Steel Products", val: "Show me steel products" },
+          ],
+        };
+      }
+      if (intent === "bulk") {
+        const faq = FAQ.find((f) => f.q === "bulk");
+        return {
+          text: faq.a,
+          followUp: [
+            { label: "📞 Contact Us", val: "How can I contact you?" },
+            { label: "💳 Payment Options", val: "What payment methods do you accept?" },
+            { label: "🛍️ Browse Products", val: "Show me your products" },
+          ],
+        };
+      }
+      if (intent === "safe") {
+        const faq = FAQ.find((f) => f.q === "safe");
+        return {
+          text: faq.a,
+          followUp: [
+            { label: "🧼 How to Clean", val: "How do I clean these products?" },
+            { label: "🌸 Menstrual Care", val: "Tell me about menstrual products" },
+            { label: "🛍️ Shop Now", val: "Show me your products" },
+          ],
+        };
+      }
 
-    for (const [category, info] of Object.entries(categories)) {
-      if (lowerInput.includes(category)) {
-        const availableProducts = info.products.filter(p => p.inStock);
-        if (availableProducts.length > 0) {
-          const productList = availableProducts.map(p => 
-            `${p.image} **${p.name}** - ₹${p.price} ${p.originalPrice > p.price ? `~~₹${p.originalPrice}~~` : ''}\n   ${p.benefits.slice(0, 2).join(' • ')} ⭐${p.rating}`
-          ).join('\n\n');
-          
-          return `${info.emoji} **${info.name}:**\n\n${productList}\n\n🌟 **Why Choose ${category.charAt(0).toUpperCase() + category.slice(1)}:**\n${info.benefits.map(b => `✅ ${b}`).join('\n')}\n\n💡 **Did you know?** ${info.facts}\n\n🌍 **Environmental Impact:** Every purchase helps reduce plastic waste significantly!`;
+      /* eco tips */
+      if (intent === "eco") {
+        const picks = [...ECO_TIPS].sort(() => 0.5 - Math.random()).slice(0, 3);
+        return {
+          text: `Here are some eco-friendly tips for you:\n\n${picks.join("\n\n")}\n\nWant to see products that help you live sustainably? Just ask!`,
+          followUp: [
+            { label: "🛍️ Browse Products", val: "Show me your products" },
+            { label: "🎋 Bamboo Items", val: "Show me bamboo products" },
+            { label: "🌱 More Eco Tips", val: "Give me more eco tips" },
+          ],
+        };
+      }
+
+      /* ── products / price / category ── */
+      if (intent === "products" || intent === "price" || intent === "category" || budget || cat) {
+        let list = products.filter((p) => p.stock > 0);
+
+        /* category-specific info */
+        if (cat && !budget && intent === "category") {
+          const infoMap = {
+            Bamboo: FAQ.find((f) => f.q === "bamboo_info"),
+            Steel: FAQ.find((f) => f.q === "steel_info"),
+            Menstrual: FAQ.find((f) => f.q === "menstrual_info"),
+          };
+          const info = infoMap[cat];
+          const catProducts = list.filter((p) => p.category === cat).slice(0, 4);
+          if (catProducts.length > 0) {
+            const otherCategories = COMPANY.categories.filter((c) => c !== cat);
+            const catFollowUp = otherCategories.slice(0, 2).map((c) => ({
+              label: `${c === "Bamboo" ? "🎋" : c === "Steel" ? "🥤" : c === "Menstrual" ? "🌸" : "♻️"} ${c} Products`,
+              val: `Show me ${c.toLowerCase()} products`,
+            }));
+            catFollowUp.push({ label: "🚚 Shipping Info", val: "How does shipping work?" });
+            return {
+              text: info
+                ? `${info.a}\n\nHere are our **${cat}** products:`
+                : `Here are our **${cat}** products:`,
+              products: catProducts,
+              followUp: catFollowUp,
+            };
+          }
         }
+
+        if (cat) list = list.filter((p) => p.category === cat);
+        if (budget) list = list.filter((p) => p.price <= budget);
+
+        if (budget) list.sort((a, b) => a.price - b.price);
+        else list.sort((a, b) => b.stock - a.stock);
+
+        const top = list.slice(0, 4);
+
+        if (top.length === 0) {
+          const hint = budget
+            ? ` under ${money(budget)}`
+            : cat
+            ? ` in ${cat}`
+            : "";
+          return {
+            text: `Sorry, I couldn't find products${hint} right now. Try browsing our full collection in the shop!`,
+            action: "shop",
+            followUp: [
+              { label: "🛍️ All Products", val: "Show me your products" },
+              { label: "🌱 Eco Tips", val: "Give me eco tips" },
+              { label: "📞 Contact Us", val: "How can I contact you?" },
+            ],
+          };
+        }
+
+        const label =
+          cat && budget
+            ? `**${cat}** products under **${money(budget)}**`
+            : cat
+            ? `**${cat}** products`
+            : budget
+            ? `Products under **${money(budget)}**`
+            : "Here are some of our popular products";
+
+        return {
+          text: `${label}:`,
+          products: top,
+          followUp: [
+            { label: "🎋 Bamboo", val: "Show me bamboo products" },
+            { label: "🥤 Steel", val: "Show me steel products" },
+            { label: "🌸 Menstrual", val: "Show me menstrual products" },
+            { label: "💳 Payments", val: "What payment methods do you accept?" },
+          ],
+        };
       }
-    }
 
-    // Enhanced comparison with detailed analysis
-    if (lowerInput.includes('compare') || lowerInput.includes('vs') || lowerInput.includes('🆚')) {
-      const topProducts = products.filter(p => p.rating >= 4.5 && p.inStock).slice(0, 3);
-      const comparison = topProducts.map((p, index) => 
-        `**${index + 1}. ${p.name}** - ₹${p.price}\n🏷️ **Category:** ${p.category}\n⭐ **Rating:** ${p.rating}/5 (${p.reviews} reviews)\n💰 **Value:** ${((p.rating * 100) / p.price).toFixed(1)} points per ₹\n✅ **Top Benefits:** ${p.benefits.slice(0, 2).join(', ')}\n🔧 **Features:** ${p.features.slice(0, 2).join(', ')}`
-      ).join('\n\n🆚\n\n');
-      
-      return `🆚 **Smart Product Comparison:**\n\n${comparison}\n\n🎯 **Quick Decision Matrix:**\n• **Best Value:** Product with highest rating-to-price ratio\n• **Most Popular:** Based on customer reviews\n• **Best for Beginners:** Easiest to use and maintain\n• **Premium Choice:** Highest rated overall\n\n💡 **Need help choosing?** Tell me your priority: budget, quality, or specific use case!`;
-    }
+      /* thanks */
+      if (intent === "thanks") {
+        return {
+          text: "You're welcome! 😊 Happy to help. What else would you like to know?",
+          followUp: [
+            { label: "🛍️ Products", val: "Show me your products" },
+            { label: "🌱 Eco Tips", val: "Give me eco tips" },
+            { label: "📞 Contact", val: "How can I contact you?" },
+          ],
+        };
+      }
 
-    // Personalized recommendations
-    if (lowerInput.includes('personalized') || lowerInput.includes('for me') || lowerInput.includes('recommend')) {
-      const level = userProfile.ecoLevel;
-      const personalizedProducts = getSmartRecommendations('', { userProfile }).slice(0, 3);
-      
-      const levelTips = ECO_TIPS_DATABASE[level] || ECO_TIPS_DATABASE.beginner;
-      const todaysTip = levelTips[Math.floor(Math.random() * levelTips.length)];
-      
-      const productList = personalizedProducts.map(p => 
-        `${p.image} **${p.name}** - ₹${p.price}\n   Perfect for: ${p.benefits.slice(0, 2).join(' & ')}`
-      ).join('\n\n');
-      
-      const userName_text = userName ? `, ${userName}` : '';
-      return `🎯 **Personalized Just For You${userName_text}:**\n\n📦 **Your Recommended Products:**\n${productList}\n\n🌱 **Today's Eco-Tip for ${level}s:**\n💡 ${todaysTip.tip}\n🌍 Impact: ${todaysTip.impact}\n\n✨ **Based on your profile:** ${level} level eco-warrior\n\n**Want more personalized suggestions?** Tell me about your lifestyle, interests, or specific needs!`;
-    }
+      /* bye */
+      if (intent === "bye") {
+        return {
+          text: `Thank you for visiting **${COMPANY.name}**! 🌱\n\nHave a great day and keep making eco-friendly choices. We're here whenever you need us!`,
+          followUp: [
+            { label: "🛍️ Quick Shop", val: "Show me your products" },
+            { label: "📞 Contact", val: "How can I contact you?" },
+          ],
+        };
+      }
 
-    // Enhanced eco tips with levels and impact
-    if (lowerInput.includes('tip') || lowerInput.includes('eco') || lowerInput.includes('sustainable') || lowerInput.includes('🌱')) {
-      const userLevel = userProfile.ecoLevel || 'beginner';
-      const tips = ECO_TIPS_DATABASE[userLevel];
-      const randomTips = tips.sort(() => 0.5 - Math.random()).slice(0, 4);
-      
-      const tipsList = randomTips.map((tip, index) => 
-        `${index + 1}️⃣ **${tip.tip}**\n   🌍 Impact: ${tip.impact}`
-      ).join('\n\n');
-      
-      const userName_text = userName ? `, ${userName}` : '';
-      return `🌱 **Eco Tips for ${userLevel.charAt(0).toUpperCase() + userLevel.slice(1)}s${userName_text}:**\n\n${tipsList}\n\n💡 **This Week's Challenge:** Pick ONE tip to implement!\n\n🎯 **Want tips for different levels?** Ask for:\n• "Beginner eco tips" - Getting started\n• "Intermediate tips" - Building habits  \n• "Advanced tips" - Lifestyle transformation\n\n🌟 Small consistent actions create massive environmental impact!`;
-    }
+      /* ── fallback ── */
+      return {
+        text: `I can help you with anything related to **${COMPANY.name}** — our products, shipping, payments, returns, or eco tips.\n\nCould you rephrase your question? Or try one of the options below!`,
+        followUp: [
+          { label: "🛍️ Products", val: "Show me your products" },
+          { label: "🚚 Shipping", val: "How does shipping work?" },
+          { label: "🌱 Eco Tips", val: "Give me eco tips" },
+          { label: "📞 Contact", val: "How can I contact you?" },
+        ],
+      };
+    },
+    [products],
+  );
 
-    // Contact and support with real info
-    if (lowerInput.includes('contact') || lowerInput.includes('support') || lowerInput.includes('help') || lowerInput.includes('📞')) {
-      return `📞 **Contact Nisarg Maitri:**\n\n🏢 **Head Office:** Greater Noida, UP\nParsvnath Edens, Near Ryan International School\nAlpha 2, Greater Noida - 201306\n\n📧 **Email:** nisargmaitri4@gmail.com\n📱 **WhatsApp/Call:** +91 9999010997\n⏰ **Hours:** Monday-Friday, 9 AM - 6 PM IST\n\n🌐 **Website:** www.nisargmaitri.in\n📍 **Other Location:** Tilak Nagar, Indore\n\n💬 **Live Chat:** Right here with me!\n🚚 **Shipping:** Pan-India delivery\n🔄 **Returns:** 30-day hassle-free policy\n\n**How can I help you today?** 😊`;
-    }
+  /* ── send handler ── */
+  const send = useCallback(
+    (text) => {
+      if (!text.trim() || typing) return;
+      setMessages((prev) => [
+        ...prev,
+        { id: Date.now(), role: "user", text: text.trim(), ts: Date.now() },
+      ]);
+      setInput("");
+      setTyping(true);
 
-    // Thank you with personality
-    if (intent === 'thanks' || lowerInput.includes('thank')) {
-      const responses = [
-        `You're absolutely welcome${userName ? `, ${userName}` : ''}! 😊`,
-        `My pleasure to help${userName ? `, ${userName}` : ''}! 🌟`,
-        `Happy to support your eco-journey${userName ? `, ${userName}` : ''}! 💚`
-      ];
-      const randomResponse = responses[Math.floor(Math.random() * responses.length)];
-      
-      return `${randomResponse}\n\n🌱 **I love helping people embrace sustainable living!** Your choices make a real difference for our planet! 🌍\n\n✨ **Keep exploring:**\n• Discover new product categories\n• Get personalized eco-tips\n• Learn about environmental impact\n• Ask for bulk pricing\n\n💡 **Remember:** Every eco-friendly choice counts towards a better future!`;
-    }
+      setTimeout(() => {
+        const reply = buildReply(text.trim());
+        setMessages((prev) => [
+          ...prev,
+          { id: Date.now() + 1, role: "bot", ...reply, ts: Date.now() },
+        ]);
+        setTyping(false);
+      }, 500 + Math.random() * 600);
+    },
+    [typing, buildReply],
+  );
 
-    // Goodbye with warmth
-    if (intent === 'goodbye' || lowerInput.includes('bye')) {
-      const goodbyes = [
-        `Take care${userName ? `, ${userName}` : ''}! 🌱`,
-        `Goodbye${userName ? `, ${userName}` : ''}! Keep being awesome! 🌟`,
-        `See you soon${userName ? `, ${userName}` : ''}! 💚`
-      ];
-      const randomGoodbye = goodbyes[Math.floor(Math.random() * goodbyes.length)];
-      
-      return `${randomGoodbye}\n\n🌍 **Thank you for choosing sustainable living with Nisarg Maitri!** Together we're making Earth healthier! \n\n💚 **Your Eco Impact Summary:**\n• Products viewed: ${conversationContext.recommendedProducts.length || 'Several'}\n• Tips learned: Multiple sustainability practices\n• Potential CO₂ savings: Significant positive impact!\n\n🌱 **Come back anytime for more eco-discoveries!** ✨`;
-    }
-
-    // Enhanced default response with smart suggestions
-    const contextualSuggestions = [
-      "What's your bestselling product?",
-      `Show me products under ₹${userProfile.budget || 200}`,
-      "Give me eco tips for beginners",
-      "Compare your top 3 products",
-      "How do I start living sustainably?"
-    ];
-
-    return `I'd love to help you find the perfect eco-solution! 🌟\n\n🎯 **Here's what I can do:**\n• 🛍️ Find products by budget, category, or need\n• 🌱 Share personalized sustainability tips\n• ⭐ Show bestsellers & customer favorites\n• 🆚 Compare products with detailed analysis\n• 💡 Calculate environmental impact\n• 🧠 Answer expert questions\n\n💬 **Try asking:**\n${contextualSuggestions.map(s => `• "${s}"`).join('\n')}\n\n✨ **Or describe what you need!** Like:\n"Something for my morning routine" or "Eco-friendly kitchen essentials"\n\nWhat's on your mind today?`;
-
-  }, [products, userName, userProfile, conversationContext]);
-
-  const handleSendMessage = useCallback(() => {
-    if (inputMessage.trim() === '' || isTyping) return;
-
-    const userMessage = {
-      id: Date.now(),
-      text: inputMessage.trim(),
-      isBot: false,
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    addBotMessage(getBotResponse(inputMessage.trim()), 1000);
-    setInputMessage('');
-  }, [inputMessage, isTyping, getBotResponse, addBotMessage]);
-
-  const handleQuickReply = useCallback((reply) => {
-    if (isTyping) return;
-    
-    const userMessage = {
-      id: Date.now(),
-      text: reply.text,
-      isBot: false,
-      timestamp: new Date(),
-    };
-
-    setMessages(prev => [...prev, userMessage]);
-    addBotMessage(getBotResponse(reply.keyword), 800);
-  }, [isTyping, getBotResponse, addBotMessage]);
-
-  const handleKeyPress = useCallback((e) => {
-    if (e.key === 'Enter' && !e.shiftKey) {
+  const handleKey = (e) => {
+    if (e.key === "Enter" && !e.shiftKey) {
       e.preventDefault();
-      handleSendMessage();
+      send(input);
     }
-  }, [handleSendMessage]);
+  };
 
-  const clearChat = useCallback(() => {
-    setMessages([
-      {
-        id: 1,
-        text: "Fresh start! 🌟 Welcome back to Nisarg Maitri!\n\n🌱 **I'm EcoBot, ready to help you discover amazing sustainable solutions!**\n\n✨ **Popular today:**\n🔥 Bamboo products trending\n💰 Budget-friendly options available\n🎯 Personalized recommendations ready\n\n**What brings you here today?** New to eco-living or looking for something specific?",
-        isBot: true,
-        timestamp: new Date(),
-      },
-    ]);
-    setConversationContext({
-      lastTopic: '',
-      currentFlow: '',
-      recommendedProducts: [],
-      askedQuestions: [],
-      userIntent: ''
-    });
-  }, []);
+  const reset = () => {
+    setMessages([]);
+    setTimeout(() => {
+      setMessages([
+        {
+          id: Date.now(),
+          role: "bot",
+          text: `Chat cleared! How can I help you with **${COMPANY.name}** products today?`,
+          ts: Date.now(),
+        },
+      ]);
+    }, 80);
+  };
 
+  /* ── quick chips (always visible main menu) ── */
+  const CHIPS = useMemo(
+    () => [
+      { label: "🛍️ Products", val: "Show me your products" },
+      { label: "🚚 Shipping", val: "How does shipping work?" },
+      { label: "🌱 Eco Tips", val: "Give me eco tips" },
+      { label: "💳 Payments", val: "What payment methods do you accept?" },
+      { label: "📞 Contact", val: "How can I contact you?" },
+      { label: "🔄 Returns", val: "What is your return policy?" },
+      { label: "📦 Bulk Order", val: "Do you offer bulk discounts?" },
+      { label: "ℹ️ About Us", val: "Tell me about Nisarg Maitri" },
+    ],
+    [],
+  );
+
+  /* should we show chips below a message */
+  const alwaysShowMenu = true;
+
+  /* ═══════════ RENDER ═══════════ */
   return (
-    <div className="fixed bottom-4 right-4 z-50">
-      {isOpen && (
-        <div className="bg-white rounded-2xl shadow-2xl w-80 sm:w-96 h-[600px] mb-4 flex flex-col border border-gray-200 overflow-hidden">
-          {/* Enhanced Header with status */}
-          <div className="bg-gradient-to-r from-[#1A3329] to-[#2F6844] text-white p-4 flex items-center justify-between">
-            <div className="flex items-center space-x-3">
-              <div className="w-10 h-10 bg-green-400 rounded-full flex items-center justify-center animate-pulse">
-                🤖
+    <>
+      {/* ── backdrop for mobile (tap to close) ── */}
+      {open && (
+        <div 
+          className="fixed inset-0 bg-black/20 z-40 sm:hidden animate-[fadeIn_0.2s_ease-out]"
+          onClick={() => setOpen(false)}
+        />
+      )}
+
+      <div className="fixed bottom-4 right-4 sm:bottom-5 sm:right-5 z-50 flex flex-col items-end gap-3">
+        {/* ── chat window ── */}
+        <div
+          id="chatbot-window"
+          className={`
+            bg-white flex flex-col overflow-hidden
+            transition-all duration-300 ease-out origin-bottom-right
+            
+            /* Mobile: full screen overlay */
+            fixed inset-0 z-50 rounded-none border-0
+            
+            /* Tablet and up: floating card */
+            sm:relative sm:inset-auto sm:mb-3
+            sm:w-[380px] sm:max-w-[calc(100vw-40px)] sm:rounded-2xl sm:shadow-2xl sm:shadow-black/10 sm:border sm:border-gray-200/60
+            sm:h-[min(600px,calc(100dvh-100px))]
+            
+            /* Animation */
+            ${open
+              ? "opacity-100 translate-y-0 scale-100 pointer-events-auto h-[100dvh] sm:h-[min(600px,calc(100dvh-100px))]"
+              : "opacity-0 translate-y-4 sm:translate-y-3 scale-100 sm:scale-[0.92] pointer-events-none !h-0 absolute sm:relative"
+            }
+          `}
+        >
+          {/* header */}
+          <div className="bg-[#1A3329] px-4 sm:px-5 py-3.5 sm:py-4 flex items-center justify-between flex-shrink-0" style={{ paddingTop: 'max(0.875rem, env(safe-area-inset-top))' }}>
+            <div className="flex items-center gap-2.5 sm:gap-3">
+              <div className="w-8 h-8 sm:w-9 sm:h-9 rounded-full bg-white/15 flex items-center justify-center text-sm sm:text-[15px]">
+                🌿
               </div>
               <div>
-                <h3 className="font-semibold flex items-center">
-                  EcoBot AI 
-                  {userName && <span className="ml-2 text-xs bg-green-400 bg-opacity-20 px-2 py-1 rounded-full">Hi {userName}!</span>}
-                </h3>
-                <p className="text-xs text-green-100 flex items-center">
-                  <span className="w-2 h-2 bg-green-400 rounded-full mr-2 animate-pulse"></span>
-                  Smart • Expert • Always Learning
+                <p className="text-[13px] sm:text-[13.5px] font-semibold text-white leading-tight tracking-wide">
+                  {COMPANY.name}
+                </p>
+                <p className="text-[10px] sm:text-[10.5px] text-white/50 flex items-center gap-1.5 mt-0.5">
+                  <span className="w-[5px] h-[5px] rounded-full bg-emerald-400 inline-block" />
+                  Typically replies instantly
                 </p>
               </div>
             </div>
-            <div className="flex space-x-2">
+            <div className="flex items-center gap-0.5">
               <button
-                onClick={clearChat}
-                className="text-white hover:text-green-200 p-2 rounded-lg hover:bg-white hover:bg-opacity-10 transition-colors"
-                title="New conversation"
+                onClick={reset}
+                className="p-2 rounded-lg hover:bg-white/10 active:bg-white/15 transition text-white/50 hover:text-white cursor-pointer"
+                title="Clear chat"
               >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+                <svg className="w-[15px] h-[15px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
                 </svg>
               </button>
               <button
-                onClick={() => setIsOpen(false)}
-                className="text-white hover:text-green-200 p-2 rounded-lg hover:bg-white hover:bg-opacity-10 transition-colors"
+                onClick={() => setOpen(false)}
+                className="p-2 rounded-lg hover:bg-white/10 active:bg-white/15 transition text-white/50 hover:text-white cursor-pointer"
+                title="Close chat"
               >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
+                <svg className="w-[15px] h-[15px] sm:block hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M19 9l-7 7-7-7" />
+                </svg>
+                {/* X icon for mobile - easier to understand */}
+                <svg className="w-[15px] h-[15px] sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                 </svg>
               </button>
             </div>
           </div>
 
-          {/* Enhanced Messages */}
-          <div className="flex-1 overflow-y-auto p-4 space-y-4 bg-gradient-to-b from-gray-50 to-white">
-            {messages.map((message) => (
-              <div key={message.id} className={`flex ${message.isBot ? 'justify-start' : 'justify-end'}`}>
-                <div className={`max-w-[85%] px-4 py-3 rounded-2xl text-sm leading-relaxed shadow-sm ${
-                  message.isBot 
-                    ? 'bg-white text-gray-800 border border-gray-100 rounded-bl-sm' 
-                    : 'bg-gradient-to-r from-[#2F6844] to-[#1A3329] text-white rounded-br-sm'
-                }`}>
-                  <div className="whitespace-pre-wrap break-words">{message.text}</div>
-                  <div className="text-xs opacity-70 mt-2 pt-1 border-t border-gray-200 border-opacity-30">
-                    {new Date(message.timestamp).toLocaleTimeString('en-US', { 
-                      hour: '2-digit', 
-                      minute: '2-digit' 
-                    })}
+          {/* messages area */}
+          <div className="flex-1 overflow-y-auto px-3 sm:px-4 py-3 sm:py-4 space-y-3 bg-[#fafafa] scrollbar-thin overscroll-contain">
+            {messages.map((m) => (
+              <div
+                key={m.id}
+                className={`flex ${m.role === "bot" ? "justify-start" : "justify-end"} animate-[fadeSlideIn_0.25s_ease-out]`}
+              >
+                {m.role === "bot" && (
+                  <div className="w-6 h-6 rounded-full bg-[#1A3329] flex items-center justify-center text-[10px] text-white flex-shrink-0 mt-1 mr-2">
+                    🌿
                   </div>
+                )}
+                <div
+                  className={`max-w-[85%] sm:max-w-[80%] px-3 sm:px-3.5 py-2 sm:py-2.5 ${
+                    m.role === "bot"
+                      ? "bg-white text-gray-700 rounded-2xl rounded-tl-md shadow-[0_1px_3px_rgba(0,0,0,0.06)] border border-gray-100/80"
+                      : "bg-[#1A3329] text-white rounded-2xl rounded-tr-md"
+                  }`}
+                >
+                  <Md text={m.text} />
+
+                  {/* product cards */}
+                  {m.products?.length > 0 && (
+                    <div className="mt-2.5 space-y-1.5">
+                      {m.products.map((p) => (
+                        <ProductCard
+                          key={p._id || p.name}
+                          p={p}
+                          onView={() => { setOpen(false); navigate("/shop"); }}
+                        />
+                      ))}
+                      <button
+                        onClick={() => { setOpen(false); navigate("/shop"); }}
+                        className="w-full text-center text-[11px] font-semibold text-[#1A3329] hover:text-[#2F6844] py-1.5 transition cursor-pointer active:scale-95"
+                      >
+                        View all in Shop →
+                      </button>
+                    </div>
+                  )}
+
+                  {m.action === "shop" && (
+                    <button
+                      onClick={() => { setOpen(false); navigate("/shop"); }}
+                      className="mt-2 text-[11.5px] font-semibold text-[#1A3329] hover:text-[#2F6844] underline underline-offset-2 transition cursor-pointer active:scale-95"
+                    >
+                      Browse Shop →
+                    </button>
+                  )}
+
+                  {/* inline follow-up suggestions */}
+                  {m.followUp?.length > 0 && m.id === messages[messages.length - 1]?.id && !typing && (
+                    <div className="mt-2.5 flex flex-wrap gap-1.5">
+                      {m.followUp.map((f) => (
+                        <button
+                          key={f.label}
+                          onClick={() => send(f.val)}
+                          className="text-[10px] font-medium px-2.5 py-1 rounded-full bg-[#1A3329]/[0.07] text-[#1A3329] hover:bg-[#1A3329]/[0.15] active:bg-[#1A3329]/[0.2] border border-[#1A3329]/10 hover:border-[#1A3329]/25 transition cursor-pointer active:scale-95"
+                        >
+                          {f.label}
+                        </button>
+                      ))}
+                    </div>
+                  )}
+
+                  <p className="text-[9px] sm:text-[9.5px] opacity-40 mt-1.5 text-right">
+                    {new Date(m.ts).toLocaleTimeString("en-IN", { hour: "2-digit", minute: "2-digit" })}
+                  </p>
                 </div>
               </div>
             ))}
-            
-            {/* Enhanced typing indicator */}
-            {isTyping && (
-              <div className="flex justify-start">
-                <div className="bg-white px-4 py-3 rounded-2xl rounded-bl-sm shadow-sm border border-gray-100">
-                  <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-green-100 rounded-full flex items-center justify-center">
-                      <span className="text-sm animate-pulse">🧠</span>
-                    </div>
-                    <div className="flex flex-col">
-                      <span className="text-xs text-gray-500 mb-1">EcoBot is thinking smartly...</span>
-                      <div className="flex space-x-1">
-                        {[0, 1, 2].map(i => (
-                          <div
-                            key={i}
-                            className="w-2 h-2 bg-[#2F6844] rounded-full animate-bounce"
-                            style={{ animationDelay: `${i * 0.1}s` }}
-                          ></div>
-                        ))}
-                      </div>
-                    </div>
+
+            {/* typing */}
+            {typing && (
+              <div className="flex justify-start animate-[fadeSlideIn_0.2s_ease-out]">
+                <div className="w-6 h-6 rounded-full bg-[#1A3329] flex items-center justify-center text-[10px] text-white flex-shrink-0 mt-1 mr-2">
+                  🌿
+                </div>
+                <div className="bg-white px-4 py-3 rounded-2xl rounded-tl-md shadow-sm border border-gray-100/80">
+                  <div className="flex items-center gap-1">
+                    <span className="w-[6px] h-[6px] rounded-full bg-gray-400 animate-bounce [animation-delay:0ms]" />
+                    <span className="w-[6px] h-[6px] rounded-full bg-gray-400 animate-bounce [animation-delay:150ms]" />
+                    <span className="w-[6px] h-[6px] rounded-full bg-gray-400 animate-bounce [animation-delay:300ms]" />
                   </div>
                 </div>
               </div>
             )}
-            <div ref={messagesEndRef} />
+            <div ref={endRef} />
           </div>
 
-          {/* Dynamic Quick Replies */}
-          <div className="px-4 py-3 border-t bg-gradient-to-r from-gray-50 to-white">
-            <p className="text-xs text-gray-600 font-medium mb-3 flex items-center">
-              <span className="mr-2">⚡</span>
-              {userName ? `Smart suggestions for ${userName}:` : 'Quick Actions:'}
-            </p>
-            <div className="grid grid-cols-2 gap-2">
-              {getDynamicQuickReplies().map((reply, index) => (
-                <button
-                  key={index}
-                  onClick={() => handleQuickReply(reply)}
-                  className="text-xs bg-white hover:bg-green-50 hover:border-[#2F6844] hover:shadow-md px-3 py-2 rounded-lg border border-gray-200 transition-all disabled:opacity-50 group transform hover:scale-105"
-                  disabled={isTyping}
-                >
-                  <span className="font-medium text-gray-700 group-hover:text-[#2F6844]">
-                    {reply.text}
-                  </span>
-                </button>
-              ))}
+          {/* ── persistent main menu chips ── */}
+          {alwaysShowMenu && !typing && (
+            <div className="px-3 sm:px-4 pb-2 pt-2 bg-white border-t border-gray-100/80 flex-shrink-0">
+              <p className="text-[9px] font-semibold text-gray-400 uppercase tracking-wider mb-1.5">Quick Menu</p>
+              <div className="flex flex-wrap gap-1.5">
+                {CHIPS.map((c) => (
+                  <button
+                    key={c.label}
+                    onClick={() => send(c.val)}
+                    className="text-[10px] sm:text-[10.5px] font-medium px-2.5 sm:px-3 py-1.5 rounded-full border border-gray-200 text-gray-500 hover:border-[#1A3329] hover:text-[#1A3329] hover:bg-[#1A3329]/[0.04] active:bg-[#1A3329]/[0.1] active:scale-95 transition cursor-pointer"
+                  >
+                    {c.label}
+                  </button>
+                ))}
+              </div>
             </div>
-          </div>
+          )}
 
-          {/* Enhanced Input Area */}
-          <div className="p-4 border-t bg-white">            
-            <div className="flex space-x-2">
+          {/* input bar */}
+          <div className="px-3 sm:px-4 py-2.5 sm:py-3 bg-white border-t border-gray-100/80 flex-shrink-0" style={{ paddingBottom: 'max(0.625rem, env(safe-area-inset-bottom))' }}>
+            <div className="flex items-center gap-2">
               <input
+                ref={inputRef}
                 type="text"
-                value={inputMessage}
-                onChange={(e) => setInputMessage(e.target.value)}
-                onKeyPress={handleKeyPress}
-                placeholder={
-                  userName 
-                    ? `Hey ${userName}, what can I help you discover today?` 
-                    : "Ask me anything about eco-friendly products..."
-                }
-                className="flex-1 px-4 py-3 border border-gray-300 rounded-xl focus:outline-none focus:ring-2 focus:ring-[#2F6844] focus:border-transparent text-sm bg-gray-50 focus:bg-white transition-all"
-                disabled={isTyping}
-                maxLength={500}
+                value={input}
+                onChange={(e) => setInput(e.target.value)}
+                onKeyDown={handleKey}
+                placeholder="Ask about products, shipping, tips…"
+                disabled={typing}
+                maxLength={300}
+                className="flex-1 text-[14px] sm:text-[13px] h-11 sm:h-10 px-4 bg-gray-50 border border-gray-200 rounded-xl outline-none focus:border-[#1A3329] focus:ring-2 focus:ring-[#1A3329]/20 transition placeholder:text-gray-400 disabled:opacity-40"
               />
               <button
-                onClick={handleSendMessage}
-                className="bg-gradient-to-r from-[#2F6844] to-[#1A3329] text-white px-6 py-3 rounded-xl hover:from-[#1A3329] hover:to-[#2F6844] transition-all disabled:opacity-50 disabled:cursor-not-allowed shadow-lg hover:shadow-xl transform hover:scale-105"
-                disabled={isTyping || !inputMessage.trim()}
+                onClick={() => send(input)}
+                disabled={typing || !input.trim()}
+                className="h-11 w-11 sm:h-10 sm:w-10 flex items-center justify-center rounded-xl bg-[#1A3329] text-white hover:bg-[#2F6844] active:scale-95 transition disabled:opacity-30 disabled:cursor-not-allowed cursor-pointer flex-shrink-0"
               >
-                <svg className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 19l9 2-9-18-9 18 9-2zm0 0v-8" />
+                <svg className="w-[15px] h-[15px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M6 12L3.269 3.126A59.768 59.768 0 0121.485 12 59.77 59.77 0 013.27 20.876L5.999 12zm0 0h7.5" />
                 </svg>
               </button>
             </div>
-            <div className="flex justify-between text-xs text-gray-500 mt-2">
-              <span className="flex items-center">
-                <span className="mr-1">🌱</span>
-                {userName ? `AI-powered help for ${userName}` : 'Intelligent eco-assistant'}
+            <p className="text-[9px] sm:text-[9.5px] text-gray-400 mt-1.5 text-center">
+              Powered by {COMPANY.name} ·{" "}
+              <span
+                className="text-gray-500 cursor-pointer hover:underline active:text-[#1A3329]"
+                onClick={() => { setOpen(false); navigate("/contact"); }}
+              >
+                Talk to a human
               </span>
-              <span className="flex items-center">
-                💡 Press Enter ↵
-              </span>
-            </div>
+            </p>
           </div>
         </div>
-      )}
 
-      {/* Enhanced Chat Button */}
-      <button
-        onClick={() => setIsOpen(!isOpen)}
-        className="bg-gradient-to-r from-[#1A3329] to-[#2F6844] text-white w-16 h-16 rounded-full shadow-xl hover:shadow-2xl transition-all duration-300 flex items-center justify-center group hover:scale-110 relative overflow-hidden"
-      >
-        <div className="absolute inset-0 bg-gradient-to-r from-green-400 to-green-600 opacity-0 group-hover:opacity-20 transition-opacity duration-300"></div>
-        {isOpen ? (
-          <svg className="h-6 w-6 relative z-10 transform group-hover:rotate-90 transition-transform duration-300" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M6 18L18 6M6 6l12 12" />
-          </svg>
-        ) : (
-          <div className="relative z-10">
-            <div className="text-2xl animate-bounce">🤖</div>
-            <div className="absolute -top-1 -right-1 w-4 h-4 bg-green-400 rounded-full animate-pulse shadow-lg flex items-center justify-center">
-              <span className="text-xs font-bold">AI</span>
-            </div>
-          </div>
-        )}
-      </button>
+        {/* ── FAB (floating action button) ── */}
+        <button
+          onClick={() => setOpen((v) => !v)}
+          className="relative w-14 h-14 rounded-full bg-[#1A3329] text-white shadow-lg hover:shadow-xl hover:scale-105 active:scale-95 transition-transform duration-200 flex items-center justify-center cursor-pointer flex-shrink-0 z-[51]"
+          aria-label="Chat with us"
+        >
+          {/* X icon when open */}
+          {open ? (
+            <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2.5}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          ) : (
+            <svg className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+              <path strokeLinecap="round" strokeLinejoin="round" d="M8 12h.01M12 12h.01M16 12h.01M21 12c0 4.418-4.03 8-9 8a9.863 9.863 0 01-4.255-.949L3 20l1.395-3.72C3.512 15.042 3 13.574 3 12c0-4.418 4.03-8 9-8s9 3.582 9 8z" />
+            </svg>
+          )}
+          {/* Pulse indicator */}
+          {pulse && !open && (
+            <span className="absolute -top-0.5 -right-0.5 flex h-3.5 w-3.5">
+              <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-emerald-400 opacity-75" />
+              <span className="relative inline-flex rounded-full h-3.5 w-3.5 bg-emerald-500 border-2 border-white" />
+            </span>
+          )}
+        </button>
 
-      {/* Enhanced Tooltip */}
-      {!isOpen && (
-        <div className="absolute bottom-20 right-0 bg-gray-900 text-white px-4 py-3 rounded-xl text-sm whitespace-nowrap opacity-0 group-hover:opacity-100 transition-all duration-300 pointer-events-none shadow-2xl transform group-hover:translate-y-1 max-w-xs">
-          <div className="flex items-center space-x-2">
-            <span className="animate-bounce">🤖</span>
-            <span className="font-medium">Hi! I'm your intelligent eco-assistant!</span>
-            <span className="animate-pulse">✨</span>
-          </div>
-          <div className="text-xs text-gray-300 mt-1 text-center">
-            {userName ? `Welcome back ${userName}! Click to chat!` : 'Click for smart product recommendations & eco-tips!'}
-          </div>
-          <div className="absolute top-full right-6 w-3 h-3 bg-gray-900 transform rotate-45 -mt-1.5"></div>
-        </div>
-      )}
-    </div>
+        {/* CSS keyframes & safe area insets */}
+        <style>{`
+          @keyframes fadeSlideIn {
+            from { opacity: 0; transform: translateY(6px); }
+            to   { opacity: 1; transform: translateY(0); }
+          }
+          @keyframes fadeIn {
+            from { opacity: 0; }
+            to   { opacity: 1; }
+          }
+          .safe-area-top {
+            padding-top: max(0.75rem, env(safe-area-inset-top));
+          }
+          .safe-area-bottom {
+            padding-bottom: max(0.625rem, env(safe-area-inset-bottom));
+          }
+          /* Hide scrollbar but keep functionality */
+          .scrollbar-thin::-webkit-scrollbar {
+            width: 4px;
+          }
+          .scrollbar-thin::-webkit-scrollbar-track {
+            background: transparent;
+          }
+          .scrollbar-thin::-webkit-scrollbar-thumb {
+            background: rgba(0,0,0,0.15);
+            border-radius: 4px;
+          }
+          .scrollbar-thin::-webkit-scrollbar-thumb:hover {
+            background: rgba(0,0,0,0.25);
+          }
+        `}</style>
+      </div>
+    </>
   );
 };
 

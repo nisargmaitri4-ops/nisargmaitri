@@ -3,7 +3,12 @@ import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
 
-const getApiUrl = () => import.meta.env.VITE_API_URL || "https://backendforshop.onrender.com";
+// Use relative URL in production for same-domain deployment
+const getApiUrl = () => {
+  if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+  if (import.meta.env.PROD) return "";
+  return "http://localhost:5001";
+};
 
 const Login = () => {
   const [email, setEmail] = useState("");
@@ -11,43 +16,50 @@ const Login = () => {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(false);
   const navigate = useNavigate();
-  const stableNavigate = useCallback((path, options) => navigate(path, options), [navigate]);
+  const stableNavigate = useCallback(
+    (path, options) => navigate(path, options),
+    [navigate],
+  );
 
   const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
   const handleApiError = (error, operation) => {
     const status = error.response?.status;
     let message = `Failed to ${operation}. Please try again.`;
-    
+
     if (error.response) {
-      message = error.response.data?.error || error.response.data?.message || "Invalid email or password.";
+      message =
+        error.response.data?.error ||
+        error.response.data?.message ||
+        "Invalid email or password.";
       if (status === 401) {
         message = "Invalid email or password.";
       } else if (status === 400) {
         message = "Email and password are required.";
       } else if (status === 403) {
-        message = error.response.data?.error || "Access denied. Please try again.";
+        message =
+          error.response.data?.error || "Access denied. Please try again.";
       } else if (status >= 500) {
         message = "Server error. Please try again later.";
       }
     } else if (error.request) {
       message = "Network error. Please check your connection and try again.";
-    } else if (error.code === 'ECONNABORTED') {
+    } else if (error.code === "ECONNABORTED") {
       message = "Request timeout. Please try again.";
     }
-    
+
     console.error(`${operation} error:`, status, message, error.response?.data);
     setError(message);
   };
 
   const validateInputs = () => {
     const trimmedEmail = email.trim();
-    
+
     if (!trimmedEmail) {
       setError("Email address is required.");
       return false;
     }
-    
+
     if (!emailRegex.test(trimmedEmail)) {
       setError("Please enter a valid email address.");
       return false;
@@ -69,11 +81,11 @@ const Login = () => {
   const handleSubmit = async (e) => {
     e.preventDefault();
     setError("");
-    
+
     if (!validateInputs()) {
       return;
     }
-    
+
     setLoading(true);
 
     try {
@@ -89,7 +101,7 @@ const Login = () => {
           },
           withCredentials: true,
           timeout: 10000, // 10 second timeout
-        }
+        },
       );
 
       console.log("Login response:", response.data);
@@ -122,10 +134,11 @@ const Login = () => {
 
       // Navigate to admin page
       stableNavigate("/admin", { replace: true });
-      
     } catch (error) {
-      if (error.message === "No authentication token received" || 
-          error.message === "User role information not received") {
+      if (
+        error.message === "No authentication token received" ||
+        error.message === "User role information not received"
+      ) {
         setError("Login response is incomplete. Please try again.");
       } else {
         handleApiError(error, "login");

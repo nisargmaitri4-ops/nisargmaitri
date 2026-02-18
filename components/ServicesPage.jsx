@@ -69,62 +69,88 @@ const FeaturedService = ({ title, description, icon, features }) => (
   </div>
 );
 
-// Simplified Project Card Component
-const ProjectCard = ({ title, description, tags, image, onClick }) => (
-  <div 
-    className="bg-white rounded-lg shadow-sm hover:shadow-md transition-all duration-300 overflow-hidden cursor-pointer"
-    onClick={onClick}
-  >
-    <div className="h-40 overflow-hidden relative">
-      <img 
-        src={image || "/api/placeholder/400/300"} 
-        alt={title}
-        className="w-full h-full object-cover"
-      />
-      <div className="absolute inset-0 bg-emerald-800 opacity-0 hover:opacity-50 transition-opacity duration-300 flex items-center justify-center">
-        <span className="text-white font-medium opacity-0 hover:opacity-100 transition-opacity duration-300">
-          View Details
-        </span>
+// Project Card Component — clean with image padding and hover lift
+const ProjectCard = ({ title, description, image, onClick, featured }) => {
+  if (featured) {
+    return (
+      <div 
+        className="group cursor-pointer bg-white rounded-2xl border border-gray-200 hover:border-emerald-300 transition-all duration-300 hover:shadow-lg overflow-hidden"
+        onClick={onClick}
+      >
+        <div className="flex flex-col md:flex-row">
+          <div className="md:w-3/5 p-4">
+            <div className="overflow-hidden rounded-xl h-full">
+              <img 
+                src={image || "/api/placeholder/600/400"} 
+                alt={title}
+                className="w-full h-full object-cover rounded-xl transition-transform duration-500 group-hover:scale-[1.02]"
+                loading="lazy"
+              />
+            </div>
+          </div>
+          <div className="md:w-2/5 p-6 md:p-8 flex flex-col justify-center">
+            <span className="inline-block text-xs font-semibold tracking-wider text-emerald-600 uppercase mb-3">Featured Project</span>
+            <h3 className="text-xl font-bold text-gray-900 mb-3 leading-tight group-hover:text-emerald-700 transition-colors">{title}</h3>
+            {description && <p className="text-gray-500 leading-relaxed mb-4">{description}</p>}
+            <span className="inline-flex items-center text-sm font-medium text-emerald-600 group-hover:gap-2 gap-1 transition-all">
+              View details
+              <ArrowRight size={16} className="transition-transform group-hover:translate-x-1" />
+            </span>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div 
+      className="group cursor-pointer bg-white rounded-2xl border border-gray-200 hover:border-emerald-300 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 overflow-hidden"
+      onClick={onClick}
+    >
+      <div className="p-3">
+        <div className="overflow-hidden rounded-xl">
+          <img 
+            src={image || "/api/placeholder/400/300"} 
+            alt={title}
+            className="w-full aspect-[4/3] object-cover rounded-xl transition-transform duration-500 group-hover:scale-[1.03]"
+            loading="lazy"
+          />
+        </div>
+      </div>
+      <div className="px-4 pb-4 pt-1">
+        <h4 className="font-semibold text-gray-900 leading-snug group-hover:text-emerald-700 transition-colors">{title}</h4>
+        {description && <p className="mt-1.5 text-sm text-gray-500 leading-relaxed line-clamp-2">{description}</p>}
+        <div className="mt-3 flex items-center text-sm font-medium text-emerald-600 opacity-0 group-hover:opacity-100 transition-opacity">
+          View details
+          <ArrowRight size={14} className="ml-1" />
+        </div>
       </div>
     </div>
-    <div className="p-3">
-      <h4 className="font-medium text-gray-800 mb-1">{title}</h4>
-      <p className="text-xs text-gray-600 mb-2">{description}</p>
-      <div className="flex flex-wrap gap-1">
-        {tags.slice(0, 2).map((tag, idx) => (
-          <span key={idx} className="px-2 py-0.5 bg-emerald-50 text-emerald-600 rounded-full text-xs">
-            {tag}
-          </span>
-        ))}
-        {tags.length > 2 && (
-          <span className="px-2 py-0.5 bg-gray-50 text-gray-500 rounded-full text-xs">
-            +{tags.length - 2} more
-          </span>
-        )}
-      </div>
-    </div>
-  </div>
-);
+  );
+};
 
 // Improved Project Modal Component
 const ProjectModal = ({ project, onClose }) => {
   if (!project) return null;
   
   return (
-    <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
-      <div className="bg-white rounded-lg max-w-2xl w-full max-h-[80vh] overflow-y-auto">
-        <div className="sticky top-0 z-10 bg-white p-3 border-b flex justify-between items-center">
-          <h3 className="font-bold text-lg text-emerald-800">{project.title}</h3>
+    <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-50 flex items-center justify-center p-4 animate-[fadeIn_0.2s_ease-out]" onClick={onClose}>
+      <div className="bg-white rounded-2xl max-w-2xl w-full max-h-[85vh] overflow-y-auto shadow-2xl animate-[scaleIn_0.2s_ease-out]" onClick={(e) => e.stopPropagation()}>
+        {/* Header */}
+        <div className="sticky top-0 z-10 bg-white/95 backdrop-blur-sm px-6 py-4 border-b border-gray-100 flex justify-between items-center rounded-t-2xl">
+          <h3 className="font-bold text-lg text-gray-900 pr-4">{project.title}</h3>
           <button 
             onClick={onClose}
-            className="p-1 rounded-full hover:bg-gray-100"
+            className="flex-shrink-0 p-2 rounded-full hover:bg-gray-100 transition-colors text-gray-400 hover:text-gray-600"
           >
             <X size={18} />
           </button>
         </div>
         
-        <div className="p-4">
-          <div className="h-48 mb-4 bg-gray-100 rounded-lg overflow-hidden">
+        {/* Content */}
+        <div className="p-6">
+          {/* Hero Image */}
+          <div className="aspect-[16/9] mb-6 bg-gray-100 rounded-xl overflow-hidden shadow-sm">
             <img 
               src={project.image || "/api/placeholder/800/400"} 
               alt={project.title}
@@ -132,43 +158,64 @@ const ProjectModal = ({ project, onClose }) => {
             />
           </div>
           
-          <div className="mb-4">
-            <h4 className="font-medium text-emerald-700 mb-2">Overview</h4>
-            <p className="text-sm text-gray-700">{project.description}</p>
-          </div>
+          {/* Overview */}
+          {project.description && (
+            <div className="mb-5">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="h-5 w-1 rounded-full bg-emerald-500" />
+                <h4 className="font-semibold text-gray-900">Overview</h4>
+              </div>
+              <p className="text-sm leading-relaxed text-gray-600 pl-3">{project.description}</p>
+            </div>
+          )}
           
+          {/* Details */}
           {project.details && (
-            <div className="mb-4">
-              <h4 className="font-medium text-emerald-700 mb-2">Details</h4>
-              <p className="text-sm text-gray-700">{project.details}</p>
+            <div className="mb-5">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="h-5 w-1 rounded-full bg-emerald-500" />
+                <h4 className="font-semibold text-gray-900">About This Project</h4>
+              </div>
+              <p className="text-sm leading-relaxed text-gray-600 pl-3">{project.details}</p>
             </div>
           )}
           
+          {/* Results */}
           {project.results && (
-            <div className="mb-4">
-              <h4 className="font-medium text-emerald-700 mb-2">Results</h4>
-              <p className="text-sm text-gray-700">{project.results}</p>
+            <div className="mb-5">
+              <div className="flex items-center gap-2 mb-2">
+                <div className="h-5 w-1 rounded-full bg-emerald-500" />
+                <h4 className="font-semibold text-gray-900">Impact & Results</h4>
+              </div>
+              <p className="text-sm leading-relaxed text-gray-600 pl-3">{project.results}</p>
             </div>
           )}
           
-          <div className="flex flex-wrap gap-1 mb-4">
-            {project.tags.map((tag, idx) => (
-              <span key={idx} className="px-2 py-1 bg-emerald-50 text-emerald-600 rounded-full text-xs">
-                {tag}
-              </span>
-            ))}
-          </div>
+          {/* Tags */}
+          {project.tags.length > 0 && (
+            <div className="flex flex-wrap gap-2 mb-5">
+              {project.tags.map((tag, idx) => (
+                <span key={idx} className="px-3 py-1 bg-emerald-50 text-emerald-700 rounded-full text-xs font-medium border border-emerald-100">
+                  {tag}
+                </span>
+              ))}
+            </div>
+          )}
           
+          {/* Gallery */}
           {project.gallery && (
             <div>
-              <h4 className="font-medium text-emerald-700 mb-2">Gallery</h4>
+              <div className="flex items-center gap-2 mb-3">
+                <div className="h-5 w-1 rounded-full bg-emerald-500" />
+                <h4 className="font-semibold text-gray-900">Gallery</h4>
+              </div>
               <div className="grid grid-cols-3 gap-2">
                 {project.gallery.map((img, idx) => (
-                  <div key={idx} className="h-16 bg-gray-100 rounded overflow-hidden">
+                  <div key={idx} className="aspect-square bg-gray-100 rounded-lg overflow-hidden">
                     <img 
                       src={img || "/api/placeholder/200/150"} 
                       alt={`Gallery ${idx+1}`}
-                      className="w-full h-full object-cover"
+                      className="w-full h-full object-cover hover:scale-105 transition-transform duration-300"
                     />
                   </div>
                 ))}
@@ -177,10 +224,11 @@ const ProjectModal = ({ project, onClose }) => {
           )}
         </div>
         
-        <div className="p-3 border-t flex justify-end">
+        {/* Footer */}
+        <div className="px-6 py-4 border-t border-gray-100 flex justify-end">
           <button
             onClick={onClose}
-            className="px-4 py-1.5 bg-gray-200 rounded text-gray-700 hover:bg-gray-300 transition-colors"
+            className="inline-flex items-center gap-2 px-5 py-2.5 bg-emerald-700 text-white rounded-lg text-sm font-medium hover:bg-emerald-800 transition-colors shadow-sm hover:shadow-md active:scale-[0.98]"
           >
             Close
           </button>
@@ -261,7 +309,7 @@ const FilterPill = ({ label, active, onClick }) => (
 
 // Main Services Page Component
 const ServicesPage = () => {
-  const [activeTab, setActiveTab] = useState('services');
+  const [activeTab, setActiveTab] = useState('work');
   const [activeCategory, setActiveCategory] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedProject, setSelectedProject] = useState(null);
@@ -559,42 +607,66 @@ const ServicesPage = () => {
       </section>
 
       {/* Portfolio/Projects Section */}
-      <section ref={portfolioRef} className={`py-8 bg-emerald-50 ${activeTab === 'work' ? 'block' : 'hidden'}`}>
-        <div className="container mx-auto px-4">
-          <h2 className="text-lg font-bold mb-1 text-emerald-800">
-            Our Portfolio
-          </h2>
-          <p className="text-gray-600 mb-6 text-sm">
-            Browse our recent projects and see the impact of our environmental work.
-          </p>
+      <section ref={portfolioRef} className={`py-14 bg-gray-50 ${activeTab === 'work' ? 'block' : 'hidden'}`}>
+        <div className="container mx-auto px-4 max-w-6xl">
+          {/* Section Header */}
+          <div className="flex items-end justify-between mb-8">
+            <div>
+              <h2 className="text-2xl font-bold text-gray-900">
+                Our Work
+              </h2>
+              <p className="text-gray-500 mt-1">
+                Making a real difference through action
+              </p>
+            </div>
+            <span className="hidden sm:block text-sm text-gray-400">{filteredProjects.length} projects</span>
+          </div>
           
           {/* Project Filters */}
-          <div className="mb-6 flex justify-center">
-            <div className="flex overflow-x-auto gap-2 no-scrollbar pb-1">
-              {projectCategories.map((category) => (
-                <FilterPill
-                  key={category.id}
-                  label={category.name}
-                  active={activeCategory === category.id}
-                  onClick={() => setActiveCategory(category.id)}
+          {projectCategories.length > 0 && (
+            <div className="mb-8 flex">
+              <div className="flex overflow-x-auto gap-2 no-scrollbar pb-1">
+                {projectCategories.map((category) => (
+                  <FilterPill
+                    key={category.id}
+                    label={category.name}
+                    active={activeCategory === category.id}
+                    onClick={() => setActiveCategory(category.id)}
+                  />
+                ))}
+              </div>
+            </div>
+          )}
+
+          {/* Featured Project (first one) */}
+          {filteredProjects.length > 0 && (
+            <div className="mb-8">
+              <ProjectCard
+                title={filteredProjects[0].title}
+                description={filteredProjects[0].details || filteredProjects[0].description}
+                tags={filteredProjects[0].tags}
+                image={filteredProjects[0].image}
+                onClick={() => setSelectedProject(filteredProjects[0])}
+                featured={true}
+              />
+            </div>
+          )}
+          
+          {/* Remaining Projects Grid */}
+          {filteredProjects.length > 1 && (
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+              {filteredProjects.slice(1).map((project) => (
+                <ProjectCard
+                  key={project.id}
+                  title={project.title}
+                  description={project.description}
+                  tags={project.tags}
+                  image={project.image}
+                  onClick={() => setSelectedProject(project)}
                 />
               ))}
             </div>
-          </div>
-          
-          {/* Project Gallery Grid */}
-          <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-            {filteredProjects.map((project) => (
-              <ProjectCard
-                key={project.id}
-                title={project.title}
-                description={project.description}
-                tags={project.tags}
-                image={project.image}
-                onClick={() => setSelectedProject(project)}
-              />
-            ))}
-          </div>
+          )}
         </div>
       </section>
       
