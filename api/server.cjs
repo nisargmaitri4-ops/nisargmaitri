@@ -141,10 +141,16 @@ app.get('/api/order-updates', async (req, res) => {
   });
 });
 
-// Request logging
-app.use((req, res, next) => {
+// Request logging + ensure DB connected for serverless
+app.use(async (req, res, next) => {
   console.log(`[${new Date().toISOString()}] ${req.method} ${req.path}`);
   if (req.path === '/health' || req.path === '/api/health') return next();
+  // In serverless, ensure DB is connected before handling request
+  try {
+    await connectDB();
+  } catch (err) {
+    return res.status(503).json({ error: 'Service unavailable: Database connection failed' });
+  }
   if (mongoose.connection.readyState !== 1) {
     return res.status(503).json({ error: 'Service unavailable: Database not connected' });
   }
@@ -186,12 +192,13 @@ const connectDB = async () => {
 
   try {
     const mongooseOptions = {
-      serverSelectionTimeoutMS: 30000,
+      serverSelectionTimeoutMS: 10000,
       connectTimeoutMS: 10000,
-      socketTimeoutMS: 45000,
-      maxPoolSize: 10,
+      socketTimeoutMS: 30000,
+      maxPoolSize: 5,
       retryWrites: true,
       retryReads: true,
+      bufferCommands: false,
     };
 
     await mongoose.connect(process.env.MONGO_URI, mongooseOptions);
@@ -200,6 +207,7 @@ const connectDB = async () => {
   } catch (err) {
     console.error('❌ MongoDB connection error:', err.message);
     isConnected = false;
+    throw err;
   }
 };
 
