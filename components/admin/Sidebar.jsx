@@ -73,17 +73,7 @@ const Sidebar = ({
 
     {/* Footer */}
     <div className="px-3 pb-4 space-y-2 border-t border-white/[.06] pt-3">
-      <div className="mx-3 flex items-center gap-2">
-        <span
-          className={cls(
-            "w-1.5 h-1.5 rounded-full",
-            sseConnected ? "bg-green-400" : "bg-red-400",
-          )}
-        />
-        <span className="text-[11px] text-white/25">
-          {sseConnected ? "Live" : "Offline"}
-        </span>
-      </div>
+
       <button
         onClick={onLogout}
         className="w-full flex items-center gap-3 px-3 py-[10px] rounded-lg text-[13px] text-white/40 hover:text-red-400 hover:bg-red-500/[.06] transition-all duration-150"

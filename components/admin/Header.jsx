@@ -27,15 +27,7 @@ const Header = ({ activeTab, sseConnected, onMenuClick, adminName }) => {
         </div>
 
         <div className="flex items-center gap-3">
-          <div className="flex items-center gap-1.5 text-xs text-gray-400">
-            <span
-              className={cls(
-                "w-1.5 h-1.5 rounded-full",
-                sseConnected ? "bg-green-500" : "bg-gray-300",
-              )}
-            />
-            {sseConnected ? "Live" : "Offline"}
-          </div>
+
           <div className="w-8 h-8 rounded-full bg-[#1A3329] text-white flex items-center justify-center text-xs font-medium">
             {avatarLetter}
           </div>
