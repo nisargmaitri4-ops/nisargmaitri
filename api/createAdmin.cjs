@@ -2,8 +2,8 @@ require('dotenv').config({ path: '../.env' });
 const mongoose = require('mongoose');
 const User = require('./models/User.cjs');
 
-const ADMIN_EMAIL = 'admin@example.com';
-const ADMIN_PASSWORD = 'newadmin456';
+const ADMIN_EMAIL = 'nisargmaitri4@gmail.com';
+const ADMIN_PASSWORD = 'Maitri@1981';
 
 mongoose.connect(process.env.MONGO_URI)
   .then(async () => {

@@ -85,10 +85,15 @@ const AdminDashboard = () => {
       try {
         const r = await axios.get(getApiUrl() + "/api/auth/check-admin", {
           headers: { Authorization: "Bearer " + token },
+          timeout: 15000,
         });
         if (!r.data.isAdmin) navigate("/");
-      } catch {
-        navigate("/login");
+      } catch (e) {
+        // Only redirect to login on auth errors, not network timeouts
+        if (e.response?.status === 401 || e.response?.status === 403) {
+          navigate("/login");
+        }
+        // Network errors (cold start timeouts) — stay on page, don't logout
       }
     };
     checkAdmin();
