@@ -16,6 +16,7 @@ import {
 } from 'lucide-react';
 import Navbar from './Navbar';
 import Footer from './Footer';
+import SEOHead from './SEOHead';
 
 // Simplified Service Card Component
 const ServiceCard = ({ icon, title, description, category }) => (
@@ -503,6 +504,11 @@ const ServicesPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50">
+      <SEOHead
+        title="Our Services & Portfolio | Nisargmaitri"
+        description="Explore Nisargmaitri's eco-services: workshops on climate change, waste management consulting, zero-waste event planning, urban farming guidance & more."
+        path="/services"
+      />
       {/* Navbar Component */}
       <Navbar />
 

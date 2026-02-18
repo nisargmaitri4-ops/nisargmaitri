@@ -2,6 +2,7 @@ import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
+import SEOHead from "./SEOHead";
 
 // Category Card Component
 const CategoryCard = ({ category, onClick }) => {
@@ -337,6 +338,11 @@ const WasteManagementPage = () => {
 
   return (
     <div className="bg-gradient-to-b from-gray-50 to-gray-100 min-h-screen font-serif">
+      <SEOHead
+        title="Waste Management Solutions | Nisargmaitri"
+        description="Learn how to manage e-waste, plastic, kitchen waste, medical waste & more. Practical tips for zero-waste living and sustainable waste disposal from Nisargmaitri."
+        path="/waste-management"
+      />
       <Navbar />
 
       <div className="container mx-auto px-6 py-12">

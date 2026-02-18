@@ -1,0 +1,10 @@
+# https://www.robotstxt.org/robotstxt.html
+User-agent: *
+Allow: /
+Disallow: /api/
+Disallow: /admin
+Disallow: /login
+Disallow: /checkout
+
+# Sitemap
+Sitemap: https://nisargmaitri.in/sitemap.xml

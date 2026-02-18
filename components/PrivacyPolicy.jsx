@@ -1,9 +1,15 @@
 import React from 'react';
 import { Mail } from 'lucide-react';
+import SEOHead from './SEOHead';
 
 const PrivacyPolicy = () => {
   return (
     <div className="min-h-screen bg-[#F5F7F6] text-gray-800 font-serif">
+      <SEOHead
+        title="Privacy Policy | Nisargmaitri"
+        description="Read Nisargmaitri's privacy policy. Learn how we collect, use, and protect your personal information when you shop eco-friendly products on our website."
+        path="/privacy-policy"
+      />
       {/* Header */}
       <header className="bg-[#12261F] text-white py-6">
         <div className="container mx-auto px-6 text-center">

@@ -2,6 +2,7 @@ import React, { useState, useCallback } from "react";
 import Navbar from "./Navbar";
 import Footer from "./Footer";
 import axios from "axios";
+import SEOHead from "./SEOHead";
 
 // Use relative URL in production for same-domain deployment
 const getApiUrl = () => {
@@ -404,6 +405,11 @@ const ContactPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 font-serif">
+      <SEOHead
+        title="Contact Us | Nisargmaitri"
+        description="Get in touch with Nisargmaitri. Questions about eco-friendly products, waste management services, or partnerships? Reach us by email, phone, or our contact form."
+        path="/contact"
+      />
       <Navbar />
       <div className="bg-[#1A3329] text-white py-16">
         <div className="container mx-auto px-6">

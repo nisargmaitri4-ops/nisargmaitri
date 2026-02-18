@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import axios from 'axios';
 import Navbar from './Navbar';
 import Footer from './Footer';
+import SEOHead from './SEOHead';
 
 const getApiUrl = () => {
   if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
@@ -343,6 +344,11 @@ const ShopPage = () => {
   
   return (
     <div className="bg-gray-50 min-h-screen font-serif">
+      <SEOHead
+        title="Shop Eco-Friendly Products | Nisargmaitri"
+        description="Browse and buy sustainable products: bamboo toothbrushes, stainless-steel bottles, menstrual cups, zero-waste starter kits & more. Free delivery above ₹500."
+        path="/shop"
+      />
       <Navbar />
       
       {/* Delivery Information Banner with Blinking Effect */}

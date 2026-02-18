@@ -1,9 +1,15 @@
 import React from 'react';
 import { MapPin, Mail } from 'lucide-react';
+import SEOHead from './SEOHead';
 
 const TermsAndConditions = () => {
   return (
     <div className="min-h-screen bg-[#F5F7F6] text-gray-800 font-serif">
+      <SEOHead
+        title="Terms & Conditions | Nisargmaitri"
+        description="Review the terms and conditions for using nisargmaitri.in. Understand your rights and obligations when purchasing eco-friendly products from our store."
+        path="/terms"
+      />
       {/* Header */}
       <header className="bg-[#12261F] text-white py-6">
         <div className="container mx-auto px-6 text-center">

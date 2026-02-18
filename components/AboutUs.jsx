@@ -2,6 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { Play, Award, Users, Leaf, ChevronRight, Clock, Heart, Eye } from 'lucide-react';
 import Navbar from './Navbar';
 import Footer from './Footer';
+import SEOHead from './SEOHead';
 
 // Fallback image for founder if local image fails
 const FALLBACK_IMAGE = 'https://via.placeholder.com/150?text=Founder';
@@ -348,6 +349,11 @@ const AboutPage = () => {
 
   return (
     <div className="min-h-screen bg-[#f8f8f8] font-sans flex flex-col">
+      <SEOHead
+        title="About Us | Nisargmaitri"
+        description="Learn about Nisargmaitri's mission to promote sustainable living. Founded by Dr. Seema Srivastava, we empower communities through eco-education and green practices."
+        path="/about"
+      />
       <Navbar />
       
       {/* Mobile Navigation */}

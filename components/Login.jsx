@@ -2,6 +2,7 @@ import React, { useState, useCallback } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import Navbar from "./Navbar";
+import SEOHead from "./SEOHead";
 
 // Use relative URL in production for same-domain deployment
 const getApiUrl = () => {
@@ -161,6 +162,11 @@ const Login = () => {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50">
+      <SEOHead
+        title="Admin Login | Nisargmaitri"
+        description="Secure admin login for Nisargmaitri dashboard."
+        path="/login"
+      />
       <Navbar />
       <main className="flex items-center justify-center flex-grow py-12 px-4 sm:px-6 lg:px-8">
         <div className="max-w-md w-full bg-white p-8 rounded-lg shadow-md">

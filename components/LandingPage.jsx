@@ -4,6 +4,7 @@ import Navbar from './Navbar'; // Ensure this path is correct
 import OurJourney from './OurJourney'; // Ensure this path is correct
 import Footer from './Footer'; // Ensure this path is correct
 import Chatbot from './Chatbot'; // Import the new Chatbot component
+import SEOHead from './SEOHead';
 
 const LandingPage = () => {
   const [toast, setToast] = useState({ message: '', visible: false });
@@ -46,6 +47,11 @@ const LandingPage = () => {
 
   return (
     <div className="min-h-screen bg-gray-50 font-serif overflow-x-hidden">
+      <SEOHead
+        title="Nisargmaitri — Eco-Friendly Products for a Greener Planet"
+        description="Shop sustainable, eco-friendly products at Nisargmaitri. Bamboo toothbrushes, menstrual cups, zero-waste kits & more. Free delivery on orders above ₹500."
+        path="/"
+      />
       <Navbar />
       <main className="container mx-auto px-4 sm:px-6 py-8 sm:py-12 flex flex-col md:flex-row items-center">
         <div className="w-full md:w-1/2 mb-8 md:mb-0 text-center md:text-left">
