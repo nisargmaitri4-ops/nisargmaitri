@@ -45,32 +45,6 @@ const generateOrderEmail = (order) => {
     }
   });
 
-  // Enhanced items list generation with better error handling
-  const itemsList = order.items
-    .map((item, index) => {
-      try {
-        const itemTotal = (item.quantity * item.price).toFixed(2);
-        return `
-          <tr>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: left;">${item.name || 'Unknown Item'}</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: center;">${item.quantity || 0}</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">₹${(item.price || 0).toFixed(2)}</td>
-            <td style="border: 1px solid #ddd; padding: 8px; text-align: right;">₹${itemTotal}</td>
-          </tr>
-        `;
-      } catch (error) {
-        console.error(`Error processing item at index ${index}:`, error, item);
-        return `
-          <tr>
-            <td colspan="4" style="border: 1px solid #ddd; padding: 8px; color: red; text-align: center;">
-              Error displaying item details
-            </td>
-          </tr>
-        `;
-      }
-    })
-    .join('');
-
   // Safe value extraction with defaults
   const safeGet = (obj, path, defaultValue = '') => {
     try {
@@ -79,6 +53,47 @@ const generateOrderEmail = (order) => {
       return defaultValue;
     }
   };
+
+  // Format the order date — use createdAt (Mongoose timestamp), fallback to current date
+  const orderDate = order.createdAt
+    ? new Date(order.createdAt).toLocaleDateString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    })
+    : new Date().toLocaleDateString('en-IN', {
+      timeZone: 'Asia/Kolkata',
+      day: '2-digit',
+      month: 'short',
+      year: 'numeric',
+    });
+
+  // Enhanced items list generation
+  const itemsRows = order.items
+    .map((item, index) => {
+      try {
+        const itemTotal = (item.quantity * item.price).toFixed(2);
+        return `
+          <tr>
+            <td style="border-bottom: 1px solid #e8e8e8; padding: 14px 12px; text-align: left; font-size: 14px; color: #333;">${item.name || 'Unknown Item'}${item.variant ? `<br><span style="font-size: 12px; color: #888;">${item.variant}</span>` : ''}</td>
+            <td style="border-bottom: 1px solid #e8e8e8; padding: 14px 12px; text-align: center; font-size: 14px; color: #555;">${item.quantity || 0}</td>
+            <td style="border-bottom: 1px solid #e8e8e8; padding: 14px 12px; text-align: right; font-size: 14px; color: #555;">₹${(item.price || 0).toFixed(2)}</td>
+            <td style="border-bottom: 1px solid #e8e8e8; padding: 14px 12px; text-align: right; font-size: 14px; font-weight: 600; color: #333;">₹${itemTotal}</td>
+          </tr>
+        `;
+      } catch (error) {
+        console.error(`Error processing item at index ${index}:`, error, item);
+        return `
+          <tr>
+            <td colspan="4" style="border-bottom: 1px solid #e8e8e8; padding: 14px 12px; color: #dc2626; text-align: center; font-size: 13px;">
+              Error displaying item details
+            </td>
+          </tr>
+        `;
+      }
+    })
+    .join('');
 
   // Calculate totals with error handling
   const calculateSubtotal = () => {
@@ -98,76 +113,149 @@ const generateOrderEmail = (order) => {
   const discount = safeGet(order, 'coupon.discount', 0);
   const total = order.total || (subtotal + shippingCost - discount);
 
-  // Enhanced HTML template with better styling and error handling
+  // Payment method display — show Razorpay's actual method if available
+  const paymentMethodDisplay = order.razorpayMethod
+    ? `${order.razorpayMethod} (Online)`
+    : safeGet(order, 'paymentMethod', 'N/A');
+
+  // Payment status color
+  const paymentStatusColor = order.paymentStatus === 'Success' ? '#16a34a' : '#d97706';
+
+  // Premium HTML email template
   const html = `
-    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f9f9f9;">
-      <div style="background-color: white; padding: 30px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1);">
-        <div style="text-align: center; margin-bottom: 30px;">
-          <h2 style="color: #2c5f41; margin: 0; font-size: 28px;">Order Confirmation</h2>
-          <p style="color: #666; margin: 5px 0 0 0; font-size: 16px;">Order #${order.orderId}</p>
+    <div style="font-family: 'Segoe UI', Arial, Helvetica, sans-serif; max-width: 600px; margin: 0 auto; padding: 0; background-color: #f4f7f5;">
+      
+      <!-- Main Card -->
+      <div style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 4px 24px rgba(0,0,0,0.08); margin: 20px;">
+        
+        <!-- Top Brand Bar -->
+        <div style="background: linear-gradient(135deg, #1a3329, #2c5f41); padding: 28px 30px; text-align: center;">
+          <h1 style="color: #ffffff; margin: 0; font-size: 22px; font-weight: 700; letter-spacing: 0.5px;">NISARG MAITRI</h1>
+          <p style="color: rgba(255,255,255,0.7); margin: 6px 0 0; font-size: 12px; letter-spacing: 1.5px; text-transform: uppercase;">Eco-Friendly Products</p>
         </div>
-        
-        <p style="font-size: 16px; margin-bottom: 20px;">Dear ${order.customer.firstName} ${order.customer.lastName},</p>
-        <p style="font-size: 16px; margin-bottom: 30px; color: #2c5f41;">Thank you for your order! We're excited to get your items shipped to you.</p>
-        
-        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; margin-bottom: 25px;">
-          <h3 style="color: #2c5f41; margin: 0 0 15px 0; font-size: 20px;">Order Details</h3>
-          <p style="margin: 5px 0;"><strong>Order ID:</strong> ${order.orderId}</p>
-          <p style="margin: 5px 0;"><strong>Date:</strong> ${order.date ? new Date(order.date).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' }) : 'N/A'}</p>
-          <p style="margin: 5px 0;"><strong>Payment Method:</strong> ${safeGet(order, 'paymentMethod', 'N/A')}</p>
-          <p style="margin: 5px 0;"><strong>Payment Status:</strong> <span style="color: ${order.paymentStatus === 'completed' ? '#28a745' : '#ffc107'};">${safeGet(order, 'paymentStatus', 'Pending')}</span></p>
+
+        <!-- Status Badge -->
+        <div style="text-align: center; padding: 28px 30px 0;">
+          <div style="display: inline-block; background-color: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 50px; padding: 8px 24px;">
+            <span style="color: #065f46; font-size: 13px; font-weight: 600; letter-spacing: 0.3px;">✓ ORDER CONFIRMED</span>
+          </div>
+          <p style="color: #9ca3af; margin: 12px 0 0; font-size: 13px;">Order #${order.orderId}</p>
         </div>
-        
-        <div style="margin-bottom: 25px;">
-          <h3 style="color: #2c5f41; margin: 0 0 15px 0; font-size: 20px;">Shipping Address</h3>
-          <div style="background-color: #f8f9fa; padding: 15px; border-radius: 6px;">
-            <p style="margin: 2px 0;">${safeGet(order, 'shippingAddress.address1', 'N/A')}${safeGet(order, 'shippingAddress.address2') ? ', ' + safeGet(order, 'shippingAddress.address2') : ''}</p>
-            <p style="margin: 2px 0;">${safeGet(order, 'shippingAddress.city', 'N/A')}, ${safeGet(order, 'shippingAddress.state', 'N/A')} ${safeGet(order, 'shippingAddress.pincode', 'N/A')}</p>
-            <p style="margin: 2px 0;">${safeGet(order, 'shippingAddress.country', 'India')}</p>
+
+        <!-- Greeting -->
+        <div style="padding: 24px 30px 0;">
+          <p style="font-size: 15px; color: #374151; margin: 0 0 6px;">Dear <strong>${order.customer.firstName} ${order.customer.lastName}</strong>,</p>
+          <p style="font-size: 14px; color: #6b7280; margin: 0; line-height: 1.6;">
+            Thank you for your order! We're preparing your items and will notify you once they're shipped.
+          </p>
+        </div>
+
+        <!-- Order Details Card -->
+        <div style="padding: 20px 30px;">
+          <div style="background-color: #f8faf9; padding: 20px; border-radius: 10px; border-left: 4px solid #2c5f41;">
+            <h3 style="color: #1a3329; margin: 0 0 14px; font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Order Details</h3>
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 5px 0; font-size: 13px; color: #6b7280; width: 130px;">Order ID</td>
+                <td style="padding: 5px 0; font-size: 13px; color: #1f2937; font-weight: 600;">${order.orderId}</td>
+              </tr>
+              <tr>
+                <td style="padding: 5px 0; font-size: 13px; color: #6b7280;">Date</td>
+                <td style="padding: 5px 0; font-size: 13px; color: #1f2937; font-weight: 600;">${orderDate}</td>
+              </tr>
+              <tr>
+                <td style="padding: 5px 0; font-size: 13px; color: #6b7280;">Payment</td>
+                <td style="padding: 5px 0; font-size: 13px; color: #1f2937; font-weight: 600;">${paymentMethodDisplay}</td>
+              </tr>
+              <tr>
+                <td style="padding: 5px 0; font-size: 13px; color: #6b7280;">Status</td>
+                <td style="padding: 5px 0; font-size: 13px;">
+                  <span style="display: inline-block; background-color: ${order.paymentStatus === 'Success' ? '#dcfce7' : '#fef3c7'}; color: ${paymentStatusColor}; padding: 2px 10px; border-radius: 20px; font-size: 12px; font-weight: 600;">${safeGet(order, 'paymentStatus', 'Pending')}</span>
+                </td>
+              </tr>
+            </table>
           </div>
         </div>
-        
-        <h3 style="color: #2c5f41; margin: 0 0 15px 0; font-size: 20px;">Items</h3>
-        <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px; background-color: white;">
-          <thead>
-            <tr style="background-color: #2c5f41; color: white;">
-              <th style="border: 1px solid #ddd; padding: 12px; text-align: left;">Product</th>
-              <th style="border: 1px solid #ddd; padding: 12px; text-align: center;">Quantity</th>
-              <th style="border: 1px solid #ddd; padding: 12px; text-align: right;">Price</th>
-              <th style="border: 1px solid #ddd; padding: 12px; text-align: right;">Total</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${itemsList}
-          </tbody>
-        </table>
-        
-        <div style="background-color: #f8f9fa; padding: 20px; border-radius: 6px; margin-bottom: 25px;">
-          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-            <span>Subtotal:</span>
-            <span>₹${subtotal.toFixed(2)}</span>
-          </div>
-          <div style="display: flex; justify-content: space-between; margin-bottom: 8px;">
-            <span>Shipping Cost:</span>
-            <span>₹${Number(shippingCost).toFixed(2)}</span>
-          </div>
-          ${discount > 0 ? `
-          <div style="display: flex; justify-content: space-between; margin-bottom: 8px; color: #28a745;">
-            <span>Discount:</span>
-            <span>-₹${Number(discount).toFixed(2)}</span>
-          </div>
-          ` : ''}
-          <hr style="border: none; border-top: 2px solid #2c5f41; margin: 15px 0;">
-          <div style="display: flex; justify-content: space-between; font-size: 18px; font-weight: bold; color: #2c5f41;">
-            <span>Total:</span>
-            <span>₹${Number(total).toFixed(2)}</span>
+
+        <!-- Items Table -->
+        <div style="padding: 0 30px 20px;">
+          <h3 style="color: #1a3329; margin: 0 0 12px; font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Items Ordered</h3>
+          <table style="width: 100%; border-collapse: collapse; border-radius: 8px; overflow: hidden;">
+            <thead>
+              <tr style="background-color: #1a3329;">
+                <th style="padding: 12px; text-align: left; font-size: 12px; color: #ffffff; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Product</th>
+                <th style="padding: 12px; text-align: center; font-size: 12px; color: #ffffff; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Qty</th>
+                <th style="padding: 12px; text-align: right; font-size: 12px; color: #ffffff; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Price</th>
+                <th style="padding: 12px; text-align: right; font-size: 12px; color: #ffffff; font-weight: 600; text-transform: uppercase; letter-spacing: 0.5px;">Total</th>
+              </tr>
+            </thead>
+            <tbody style="background-color: #ffffff;">
+              ${itemsRows}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pricing Summary -->
+        <div style="padding: 0 30px 20px;">
+          <div style="background-color: #f8faf9; padding: 18px 20px; border-radius: 10px;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 6px 0; font-size: 14px; color: #6b7280;">Subtotal</td>
+                <td style="padding: 6px 0; font-size: 14px; color: #374151; text-align: right;">₹${subtotal.toFixed(2)}</td>
+              </tr>
+              <tr>
+                <td style="padding: 6px 0; font-size: 14px; color: #6b7280;">Shipping</td>
+                <td style="padding: 6px 0; font-size: 14px; color: #374151; text-align: right;">${Number(shippingCost) === 0 ? '<span style="color: #16a34a; font-weight: 600;">FREE</span>' : '₹' + Number(shippingCost).toFixed(2)}</td>
+              </tr>
+              ${discount > 0 ? `
+              <tr>
+                <td style="padding: 6px 0; font-size: 14px; color: #16a34a;">Discount${order.coupon && order.coupon.code ? ` (${order.coupon.code})` : ''}</td>
+                <td style="padding: 6px 0; font-size: 14px; color: #16a34a; text-align: right; font-weight: 600;">-₹${Number(discount).toFixed(2)}</td>
+              </tr>
+              ` : ''}
+              <tr>
+                <td colspan="2" style="padding: 10px 0 0;"><hr style="border: none; border-top: 2px solid #d1d5db; margin: 0;"></td>
+              </tr>
+              <tr>
+                <td style="padding: 10px 0 0; font-size: 18px; font-weight: 700; color: #1a3329;">Total</td>
+                <td style="padding: 10px 0 0; font-size: 18px; font-weight: 700; color: #1a3329; text-align: right;">₹${Number(total).toFixed(2)}</td>
+              </tr>
+            </table>
           </div>
         </div>
-        
-        <div style="text-align: center; padding: 20px; background-color: #e8f5e8; border-radius: 6px;">
-          <p style="margin: 0; color: #2c5f41; font-weight: bold;">We will notify you once your order is shipped.</p>
-          <p style="margin: 10px 0 0 0; color: #666;">Thank you for shopping with Nisarg Maitri!</p>
+
+        <!-- Shipping Address -->
+        <div style="padding: 0 30px 20px;">
+          <div style="background-color: #f8faf9; padding: 20px; border-radius: 10px; border-left: 4px solid #6b7280;">
+            <h3 style="color: #374151; margin: 0 0 10px; font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Shipping Address</h3>
+            <p style="margin: 3px 0; font-size: 14px; color: #4b5563; line-height: 1.5;">
+              ${safeGet(order, 'shippingAddress.address1', 'N/A')}${safeGet(order, 'shippingAddress.address2') ? ', ' + safeGet(order, 'shippingAddress.address2') : ''}<br>
+              ${safeGet(order, 'shippingAddress.city', 'N/A')}, ${safeGet(order, 'shippingAddress.state', 'N/A')} ${safeGet(order, 'shippingAddress.pincode', 'N/A')}<br>
+              ${safeGet(order, 'shippingAddress.country', 'India')}
+            </p>
+          </div>
         </div>
+
+        <!-- Next Steps -->
+        <div style="padding: 0 30px 24px;">
+          <div style="background: linear-gradient(135deg, #ecfdf5, #d1fae5); padding: 22px; border-radius: 10px; text-align: center;">
+            <p style="margin: 0 0 4px; font-size: 15px; font-weight: 700; color: #065f46;">What's Next?</p>
+            <p style="margin: 0; font-size: 13px; color: #047857; line-height: 1.5;">
+              We'll send you a notification once your order is shipped.<br>
+              You can expect delivery within 5-7 business days.
+            </p>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="border-top: 1px solid #e5e7eb; padding: 20px 30px; text-align: center; background-color: #fafafa;">
+          <p style="margin: 0; color: #1a3329; font-size: 13px; font-weight: 600;">Nisarg Maitri</p>
+          <p style="margin: 4px 0 0; color: #9ca3af; font-size: 11px;">Eco-Friendly Products · Sustainable Living</p>
+          <p style="margin: 10px 0 0; color: #9ca3af; font-size: 11px;">
+            Questions? Reply to this email or write to ${process.env.SUPPORT_EMAIL || 'support@nisargmaitri.in'}
+          </p>
+        </div>
+
       </div>
     </div>
   `;
