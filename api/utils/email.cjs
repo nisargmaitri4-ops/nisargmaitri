@@ -269,7 +269,7 @@ const generateOrderEmail = (order) => {
   return html;
 };
 
-const sendEmail = async ({ email, subject, html }) => {
+const sendEmail = async ({ email, subject, html, attachments }) => {
   // Enhanced parameter validation
   const errors = [];
 
@@ -309,7 +309,9 @@ const sendEmail = async ({ email, subject, html }) => {
     to: email.trim(),
     subject: subject.trim(),
     html: html.trim(),
+    ...(attachments && attachments.length > 0 && { attachments }),
   };
+
 
   try {
     console.log(`Attempting to send email to ${email} with subject: "${subject}"`);

@@ -6,6 +6,7 @@ const sanitize = require('sanitize-html');
 const Order = require('../models/Order.cjs');
 const { authenticateAdmin } = require('../middleware/authenticateAdmin.cjs');
 const { sendEmail, generateOrderEmail, generateDeliveryEmail, generateCancellationEmail } = require('../utils/email.cjs');
+const { generateInvoicePDF } = require('../utils/invoice.cjs');
 
 // Use VITE_ prefixed env var for Razorpay key ID (shared with frontend)
 const razorpay = new Razorpay({
@@ -709,16 +710,33 @@ router.put('/:orderId/status', authenticateAdmin, async (req, res) => {
 
     console.log(`Order status updated: ${orderId} → ${orderStatus}`);
 
-    // Send delivery confirmation email when marked as Delivered
+    // Send delivery confirmation email with invoice PDF when marked as Delivered
     if (orderStatus === 'Delivered' && order.customer?.email) {
       try {
         const html = generateDeliveryEmail(order.toObject());
+
+        // Generate invoice PDF
+        let attachments = [];
+        try {
+          const invoiceBuffer = await generateInvoicePDF(order.toObject());
+          attachments = [{
+            filename: `Invoice-${order.orderId}.pdf`,
+            content: invoiceBuffer,
+            contentType: 'application/pdf',
+          }];
+          console.log(`Invoice PDF generated for order: ${orderId} (${(invoiceBuffer.length / 1024).toFixed(1)} KB)`);
+        } catch (pdfError) {
+          console.error(`Failed to generate invoice PDF for ${orderId}:`, pdfError.message);
+          // Continue sending email without attachment
+        }
+
         await sendEmail({
           email: order.customer.email,
           subject: `Order Delivered - ${order.orderId} | Nisarg Maitri`,
           html,
+          attachments,
         });
-        console.log(`Delivery email sent for order: ${orderId} to ${order.customer.email.replace(/(.{2}).*@/, '$1***@')}`);
+        console.log(`Delivery email with invoice sent for order: ${orderId} to ${order.customer.email.replace(/(.{2}).*@/, '$1***@')}`);
       } catch (emailError) {
         console.error(`Failed to send delivery email for ${orderId}:`, emailError.message);
       }
