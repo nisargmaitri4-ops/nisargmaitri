@@ -1,7 +1,10 @@
 const PDFDocument = require('pdfkit');
 
 /**
- * Generates a professional PDF invoice for an order.
+ * Generates a PDF invoice that matches the dashboard's existing invoice layout.
+ * Uses PDFKit on the server side to replicate the same visual design as the
+ * jsPDF-based downloadPDF function in AdminDashboard.jsx.
+ *
  * Returns a Promise that resolves to a Buffer containing the PDF data.
  */
 const generateInvoicePDF = (order) => {
@@ -11,224 +14,229 @@ const generateInvoicePDF = (order) => {
                 throw new Error('Invalid order data for invoice generation');
             }
 
-            const doc = new PDFDocument({ size: 'A4', margin: 50 });
+            const doc = new PDFDocument({ size: 'A4', margin: 40 });
             const chunks = [];
 
             doc.on('data', (chunk) => chunks.push(chunk));
             doc.on('end', () => resolve(Buffer.concat(chunks)));
             doc.on('error', reject);
 
-            const primaryColor = '#1a3329';
-            const accentColor = '#2c5f41';
-            const lightGray = '#f8faf9';
-            const textGray = '#555555';
-            const pageWidth = doc.page.width - doc.page.margins.left - doc.page.margins.right;
+            const margin = 40;
+            const pageW = 595.28; // A4 width in points
+            const contentW = pageW - margin * 2;
+            const brand = '#1A3329';
+            const textDark = '#3C3C3C';
+            const textMid = '#505050';
+            const textLight = '#969696';
 
-            // ──────────── HEADER ────────────
-            // Brand bar
-            doc.rect(0, 0, doc.page.width, 100).fill(primaryColor);
+            // ── Helper: Rs. formatter (PDF fonts don't have ₹) ──
+            const rs = (n) => 'Rs. ' + Number(n || 0).toFixed(2);
 
-            doc.fontSize(24).font('Helvetica-Bold').fillColor('#ffffff')
-                .text('NISARG MAITRI', 50, 30, { width: pageWidth });
-            doc.fontSize(10).font('Helvetica').fillColor('rgba(255,255,255,0.7)')
-                .text('Eco-Friendly Products · Sustainable Living', 50, 58, { width: pageWidth });
-
-            // Invoice Title
-            doc.fontSize(10).font('Helvetica-Bold').fillColor('#ffffff')
-                .text('TAX INVOICE', doc.page.width - 200, 35, { width: 150, align: 'right' });
-
-            // ──────────── INVOICE META ────────────
-            const metaY = 120;
-
-            // Left: Invoice To
-            doc.fontSize(10).font('Helvetica-Bold').fillColor(primaryColor)
-                .text('INVOICE TO', 50, metaY);
-            doc.fontSize(10).font('Helvetica').fillColor(textGray)
-                .text(`${order.customer.firstName} ${order.customer.lastName}`, 50, metaY + 16)
-                .text(order.customer.email || '', 50, metaY + 30)
-                .text(order.customer.phone || '', 50, metaY + 44);
-
-            // Right: Invoice details
-            doc.fontSize(10).font('Helvetica-Bold').fillColor(primaryColor)
-                .text('INVOICE DETAILS', doc.page.width - 250, metaY, { width: 200, align: 'right' });
-
-            const orderDate = order.createdAt
-                ? new Date(order.createdAt).toLocaleDateString('en-IN', {
-                    day: '2-digit', month: 'short', year: 'numeric'
-                })
-                : new Date().toLocaleDateString('en-IN', {
-                    day: '2-digit', month: 'short', year: 'numeric'
-                });
-
-            const deliveryDate = new Date().toLocaleDateString('en-IN', {
-                day: '2-digit', month: 'short', year: 'numeric'
-            });
-
-            doc.fontSize(9).font('Helvetica').fillColor(textGray);
-            const rightX = doc.page.width - 250;
-            const labelWidth = 90;
-            const valueWidth = 110;
-
-            const metaRows = [
-                ['Invoice No:', order.orderId],
-                ['Order Date:', orderDate],
-                ['Delivery Date:', deliveryDate],
-                ['Payment:', order.razorpayMethod ? `${order.razorpayMethod} (Online)` : (order.paymentMethod || 'COD')],
-            ];
-
-            metaRows.forEach((row, i) => {
-                const y = metaY + 16 + (i * 15);
-                doc.font('Helvetica').fillColor('#888888')
-                    .text(row[0], rightX, y, { width: labelWidth, align: 'right' });
-                doc.font('Helvetica-Bold').fillColor('#333333')
-                    .text(row[1], rightX + labelWidth + 5, y, { width: valueWidth, align: 'right' });
-            });
-
-            // ──────────── SHIPPING ADDRESS ────────────
-            const addrY = metaY + 90;
-            doc.fontSize(10).font('Helvetica-Bold').fillColor(primaryColor)
-                .text('SHIPPING ADDRESS', 50, addrY);
-            doc.fontSize(9).font('Helvetica').fillColor(textGray);
-
-            const addr = order.shippingAddress || {};
-            const addrLines = [
-                addr.address1,
-                addr.address2,
-                [addr.city, addr.state, addr.pincode].filter(Boolean).join(', '),
-                addr.country || 'India',
-            ].filter(Boolean);
-
-            addrLines.forEach((line, i) => {
-                doc.text(line, 50, addrY + 16 + (i * 14));
-            });
-
-            // GST Details (if present)
-            if (order.gstDetails && order.gstDetails.gstNumber) {
-                const gstY = addrY + 16 + (addrLines.length * 14) + 5;
-                doc.fontSize(9).font('Helvetica-Bold').fillColor(primaryColor)
-                    .text('GSTIN:', 50, gstY);
-                doc.font('Helvetica').fillColor(textGray)
-                    .text(order.gstDetails.gstNumber, 90, gstY);
-            }
-
-            // ──────────── ITEMS TABLE ────────────
-            const tableY = addrY + 16 + (addrLines.length * 14) + (order.gstDetails?.gstNumber ? 35 : 20);
-            const colWidths = {
-                sno: 30,
-                product: pageWidth - 230,
-                qty: 50,
-                price: 70,
-                total: 80,
+            // ── Helper: date formatter ──
+            const fmtDate = (d) => {
+                if (!d) return '—';
+                const dt = new Date(d);
+                return isNaN(dt) ? '—' : dt.toLocaleDateString('en-IN', { year: 'numeric', month: 'short', day: 'numeric' });
             };
 
-            // Table header
-            doc.rect(50, tableY, pageWidth, 28).fill(primaryColor);
+            // ═══════════════════════════════════════
+            // TOP BAR
+            // ═══════════════════════════════════════
+            doc.rect(0, 0, pageW, 6).fill(brand);
 
-            doc.fontSize(9).font('Helvetica-Bold').fillColor('#ffffff');
-            let headerX = 50;
-            doc.text('#', headerX + 8, tableY + 9, { width: colWidths.sno });
-            headerX += colWidths.sno;
-            doc.text('Product', headerX + 5, tableY + 9, { width: colWidths.product });
-            headerX += colWidths.product;
-            doc.text('Qty', headerX, tableY + 9, { width: colWidths.qty, align: 'center' });
-            headerX += colWidths.qty;
-            doc.text('Price', headerX, tableY + 9, { width: colWidths.price, align: 'right' });
-            headerX += colWidths.price;
-            doc.text('Total', headerX, tableY + 9, { width: colWidths.total, align: 'right' });
+            // ═══════════════════════════════════════
+            // COMPANY BRANDING (left)
+            // ═══════════════════════════════════════
+            doc.fontSize(20).font('Helvetica-Bold').fillColor(brand)
+                .text('Nisarg Maitri', margin, 22);
+            doc.fontSize(9).font('Helvetica').fillColor('#646464')
+                .text('Eco-Friendly Products', margin, 44);
+
+            // ═══════════════════════════════════════
+            // "INVOICE" BADGE (right)
+            // ═══════════════════════════════════════
+            doc.fontSize(28).font('Helvetica-Bold').fillColor('#D2D2D2')
+                .text('INVOICE', pageW - margin - 120, 22, { width: 120, align: 'right' });
+
+            // ── Divider line ──
+            doc.moveTo(margin, 58).lineTo(pageW - margin, 58)
+                .strokeColor('#DCDCDC').lineWidth(0.4).stroke();
+
+            // ═══════════════════════════════════════
+            // INVOICE META (left side)
+            // ═══════════════════════════════════════
+            const metaY = 70;
+            const metaLabelX = margin;
+            const metaValueX = margin + 75;
+
+            const metaLabels = ['Invoice No:', 'Date:', 'Payment:', 'Order Status:'];
+
+            // Payment label
+            const payLabel = order.paymentMethod === 'COD'
+                ? 'COD'
+                : order.razorpayMethod
+                    ? 'Prepaid - ' + order.razorpayMethod
+                    : 'Prepaid';
+            const paymentDisplay = payLabel + ' (' + (order.paymentStatus || 'N/A') + ')';
+
+            const metaValues = [
+                order.orderId,
+                fmtDate(order.createdAt),
+                paymentDisplay,
+                order.orderStatus || 'Confirmed',
+            ];
+
+            metaLabels.forEach((label, i) => {
+                const y = metaY + (i * 14);
+                doc.fontSize(9).font('Helvetica-Bold').fillColor(textDark)
+                    .text(label, metaLabelX, y);
+                doc.fontSize(9).font('Helvetica').fillColor(textMid)
+                    .text(metaValues[i], metaValueX, y);
+            });
+
+            // ═══════════════════════════════════════
+            // BILL TO (right side)
+            // ═══════════════════════════════════════
+            const rightX = pageW / 2 + 30;
+
+            doc.fontSize(9).font('Helvetica-Bold').fillColor(textDark)
+                .text('Bill To:', rightX, metaY);
+
+            const custName = ((order.customer.firstName || '') + ' ' + (order.customer.lastName || '')).trim() || 'N/A';
+
+            doc.fontSize(9).font('Helvetica').fillColor(textMid);
+            doc.text(custName, rightX, metaY + 14);
+            doc.text(order.customer.email || 'N/A', rightX, metaY + 28);
+            doc.text(order.customer.phone || 'N/A', rightX, metaY + 42);
+
+            // Address
+            const addr = order.shippingAddress || {};
+            const addrText = [
+                addr.address1,
+                addr.address2,
+                [addr.city, addr.state, addr.pincode ? '- ' + addr.pincode : ''].filter(Boolean).join(', '),
+            ].filter(Boolean).join('\n');
+
+            if (addrText) {
+                doc.fontSize(9).font('Helvetica').fillColor(textMid)
+                    .text(addrText, rightX, metaY + 56, { width: pageW - rightX - margin, lineGap: 2 });
+            }
+
+            // ═══════════════════════════════════════
+            // ITEMS TABLE
+            // ═══════════════════════════════════════
+            const tableTop = 160;
+            const colX = {
+                hash: margin,
+                item: margin + 25,
+                qty: margin + contentW - 150,
+                price: margin + contentW - 95,
+                total: margin + contentW - 40,
+            };
+            const tableRight = margin + contentW;
+
+            // Table header
+            doc.rect(margin, tableTop, contentW, 22).fill(brand);
+
+            doc.fontSize(9).font('Helvetica-Bold').fillColor('#FFFFFF');
+            doc.text('#', colX.hash + 5, tableTop + 7);
+            doc.text('Item', colX.item + 5, tableTop + 7);
+            doc.text('Qty', colX.qty, tableTop + 7, { width: 50, align: 'center' });
+            doc.text('Price', colX.price, tableTop + 7, { width: 50, align: 'right' });
+            doc.text('Total', colX.total, tableTop + 7, { width: 50, align: 'right' });
 
             // Table rows
-            let rowY = tableY + 28;
-            const items = order.items || [];
+            let rowY = tableTop + 22;
+            const rowH = 24;
             let subtotal = 0;
 
-            items.forEach((item, index) => {
+            (order.items || []).forEach((item, index) => {
                 const itemTotal = (item.quantity || 0) * (item.price || 0);
                 subtotal += itemTotal;
 
                 // Alternate row background
                 if (index % 2 === 0) {
-                    doc.rect(50, rowY, pageWidth, 26).fill(lightGray);
+                    doc.rect(margin, rowY, contentW, rowH).fill('#F5F8F6');
+                } else {
+                    doc.rect(margin, rowY, contentW, rowH).fill('#FFFFFF');
                 }
 
-                doc.fontSize(9).font('Helvetica').fillColor('#333333');
-                let cellX = 50;
-                doc.text(`${index + 1}`, cellX + 8, rowY + 8, { width: colWidths.sno });
-                cellX += colWidths.sno;
+                doc.fontSize(9).font('Helvetica').fillColor('#323232');
+                doc.text(String(index + 1), colX.hash + 5, rowY + 7);
 
                 const productName = item.variant
                     ? `${item.name} (${item.variant})`
-                    : item.name || 'Product';
-                doc.text(productName, cellX + 5, rowY + 8, { width: colWidths.product - 10 });
-                cellX += colWidths.product;
-
-                doc.text(`${item.quantity}`, cellX, rowY + 8, { width: colWidths.qty, align: 'center' });
-                cellX += colWidths.qty;
-                doc.text(`₹${(item.price || 0).toFixed(2)}`, cellX, rowY + 8, { width: colWidths.price, align: 'right' });
-                cellX += colWidths.price;
+                    : item.name || 'N/A';
+                doc.text(productName, colX.item + 5, rowY + 7, { width: colX.qty - colX.item - 15 });
+                doc.text(String(item.quantity || 0), colX.qty, rowY + 7, { width: 50, align: 'center' });
+                doc.text(rs(item.price), colX.price, rowY + 7, { width: 50, align: 'right' });
                 doc.font('Helvetica-Bold')
-                    .text(`₹${itemTotal.toFixed(2)}`, cellX, rowY + 8, { width: colWidths.total, align: 'right' });
+                    .text(rs(itemTotal), colX.total, rowY + 7, { width: 50, align: 'right' });
 
-                rowY += 26;
+                // Row border
+                doc.moveTo(margin, rowY + rowH).lineTo(tableRight, rowY + rowH)
+                    .strokeColor('#DCDCDC').lineWidth(0.3).stroke();
+
+                rowY += rowH;
             });
 
-            // Bottom border
-            doc.moveTo(50, rowY).lineTo(50 + pageWidth, rowY).strokeColor('#e0e0e0').lineWidth(1).stroke();
-
-            // ──────────── TOTALS ────────────
-            const totalsX = 50 + pageWidth - 220;
-            const totalsLabelW = 120;
-            const totalsValueW = 100;
-            let totalsY = rowY + 15;
-
+            // ═══════════════════════════════════════
+            // TOTALS SECTION (right-aligned)
+            // ═══════════════════════════════════════
             const shippingCost = order.shippingMethod?.cost || 0;
             const discount = order.coupon?.discount || 0;
             const total = order.total || (subtotal + shippingCost - discount);
+            const shippingLabel = 'Shipping (' + (order.shippingMethod?.type || 'Standard') + ')';
+            const shippingValue = shippingCost === 0 ? 'Free' : rs(shippingCost);
+
+            const totalsX = tableRight - 200;
+            const totalsLabelW = 120;
+            const totalsValueW = 80;
+            let totY = rowY + 15;
 
             // Subtotal
-            doc.fontSize(10).font('Helvetica').fillColor(textGray)
-                .text('Subtotal', totalsX, totalsY, { width: totalsLabelW, align: 'right' });
-            doc.font('Helvetica').fillColor('#333333')
-                .text(`₹${subtotal.toFixed(2)}`, totalsX + totalsLabelW, totalsY, { width: totalsValueW, align: 'right' });
-
-            totalsY += 18;
+            doc.fontSize(10).font('Helvetica').fillColor(textDark)
+                .text('Subtotal', totalsX, totY, { width: totalsLabelW, align: 'right' });
+            doc.text(rs(subtotal), totalsX + totalsLabelW, totY, { width: totalsValueW, align: 'right' });
+            totY += 18;
 
             // Shipping
-            doc.font('Helvetica').fillColor(textGray)
-                .text('Shipping', totalsX, totalsY, { width: totalsLabelW, align: 'right' });
-            doc.font('Helvetica').fillColor(shippingCost === 0 ? accentColor : '#333333')
-                .text(shippingCost === 0 ? 'FREE' : `₹${Number(shippingCost).toFixed(2)}`, totalsX + totalsLabelW, totalsY, { width: totalsValueW, align: 'right' });
-
-            totalsY += 18;
+            doc.text(shippingLabel, totalsX, totY, { width: totalsLabelW, align: 'right' });
+            doc.text(shippingValue, totalsX + totalsLabelW, totY, { width: totalsValueW, align: 'right' });
+            totY += 18;
 
             // Discount
             if (discount > 0) {
-                doc.font('Helvetica').fillColor(accentColor)
-                    .text(`Discount${order.coupon?.code ? ` (${order.coupon.code})` : ''}`, totalsX, totalsY, { width: totalsLabelW, align: 'right' });
-                doc.font('Helvetica-Bold').fillColor(accentColor)
-                    .text(`-₹${Number(discount).toFixed(2)}`, totalsX + totalsLabelW, totalsY, { width: totalsValueW, align: 'right' });
-                totalsY += 18;
+                const discLabel = 'Coupon' + (order.coupon?.code ? ' (' + order.coupon.code + ')' : '');
+                doc.text(discLabel, totalsX, totY, { width: totalsLabelW, align: 'right' });
+                doc.text('- ' + rs(discount), totalsX + totalsLabelW, totY, { width: totalsValueW, align: 'right' });
+                totY += 18;
             }
 
-            // Divider line
-            totalsY += 5;
-            doc.moveTo(totalsX, totalsY).lineTo(totalsX + totalsLabelW + totalsValueW, totalsY)
-                .strokeColor(accentColor).lineWidth(2).stroke();
-            totalsY += 10;
+            // Divider
+            doc.moveTo(totalsX, totY).lineTo(totalsX + totalsLabelW + totalsValueW, totY)
+                .strokeColor('#C8C8C8').lineWidth(0.4).stroke();
+            totY += 10;
 
             // Total
-            doc.fontSize(14).font('Helvetica-Bold').fillColor(primaryColor)
-                .text('Total', totalsX, totalsY, { width: totalsLabelW, align: 'right' });
-            doc.text(`₹${Number(total).toFixed(2)}`, totalsX + totalsLabelW, totalsY, { width: totalsValueW, align: 'right' });
+            doc.fontSize(12).font('Helvetica-Bold').fillColor(brand)
+                .text('Total', totalsX, totY, { width: totalsLabelW, align: 'right' });
+            doc.text(rs(total), totalsX + totalsLabelW, totY, { width: totalsValueW, align: 'right' });
 
-            // ──────────── FOOTER ────────────
-            const footerY = doc.page.height - 80;
+            // ═══════════════════════════════════════
+            // FOOTER
+            // ═══════════════════════════════════════
+            const footerY = totY + 45;
 
-            doc.moveTo(50, footerY).lineTo(50 + pageWidth, footerY)
-                .strokeColor('#e0e0e0').lineWidth(0.5).stroke();
+            doc.moveTo(margin, footerY).lineTo(pageW - margin, footerY)
+                .strokeColor('#DCDCDC').lineWidth(0.3).stroke();
 
-            doc.fontSize(8).font('Helvetica').fillColor('#aaaaaa')
-                .text('This is a computer-generated invoice and does not require a signature.', 50, footerY + 12, { width: pageWidth, align: 'center' })
-                .text(`Nisarg Maitri | Eco-Friendly Products | ${process.env.SUPPORT_EMAIL || 'support@nisargmaitri.in'}`, 50, footerY + 26, { width: pageWidth, align: 'center' });
+            doc.fontSize(8).font('Helvetica').fillColor(textLight)
+                .text('Thank you for your order!', margin, footerY + 10, { width: contentW, align: 'center' });
+            doc.text(
+                'Nisarg Maitri  |  Eco-Friendly Products  |  nisargmaitri.com',
+                margin, footerY + 22, { width: contentW, align: 'center' }
+            );
 
             doc.end();
         } catch (error) {
