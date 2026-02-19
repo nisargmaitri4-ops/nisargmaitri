@@ -286,19 +286,16 @@ const generateDeliveryEmail = (order) => {
       <div style="background-color: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
         
         <!-- Header -->
-        <div style="text-align: center; margin-bottom: 25px;">
-          <div style="width: 60px; height: 60px; background-color: #e8f5e8; border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center;">
-            <span style="font-size: 30px; line-height: 60px;">✅</span>
-          </div>
-          <h2 style="color: #2c5f41; margin: 0; font-size: 24px;">Order Delivered!</h2>
+        <div style="text-align: center; margin-bottom: 25px; padding-top: 10px; border-top: 4px solid #2c5f41;">
+          <h2 style="color: #2c5f41; margin: 15px 0 0; font-size: 24px;">Order Delivered</h2>
           <p style="color: #888; margin: 8px 0 0; font-size: 14px;">Order #${order.orderId}</p>
         </div>
 
         <!-- Message -->
         <p style="font-size: 15px; color: #333; margin-bottom: 5px;">Dear ${customerName},</p>
         <p style="font-size: 15px; color: #555; margin-bottom: 25px; line-height: 1.6;">
-          Great news! Your order has been <strong style="color: #2c5f41;">successfully delivered</strong>. 
-          We hope you love your eco-friendly products from Nisarg Maitri!
+          Your order has been <strong style="color: #2c5f41;">successfully delivered</strong>. 
+          We hope you enjoy your products from Nisarg Maitri.
         </p>
 
         <!-- Order Summary -->
@@ -325,9 +322,9 @@ const generateDeliveryEmail = (order) => {
         </table>
 
         <!-- CTA -->
-        <div style="text-align: center; padding: 20px; background-color: #e8f5e8; border-radius: 8px; margin-bottom: 20px;">
+        <div style="text-align: center; padding: 20px; background-color: #f8faf9; border-radius: 8px; margin-bottom: 20px;">
           <p style="margin: 0 0 8px; color: #2c5f41; font-weight: bold; font-size: 15px;">
-            Thank you for choosing Nisarg Maitri! 🌿
+            Thank you for choosing Nisarg Maitri
           </p>
           <p style="margin: 0; color: #666; font-size: 13px;">
             Your purchase supports sustainable and eco-friendly living.
@@ -337,10 +334,10 @@ const generateDeliveryEmail = (order) => {
         <!-- Footer -->
         <div style="text-align: center; border-top: 1px solid #eee; padding-top: 15px;">
           <p style="margin: 0; color: #aaa; font-size: 12px;">
-            Nisarg Maitri — Eco-Friendly Products
+            Nisarg Maitri | Eco-Friendly Products
           </p>
           <p style="margin: 5px 0 0; color: #aaa; font-size: 12px;">
-            If you have any questions, reply to this email or contact us at ${process.env.SUPPORT_EMAIL || 'support@nisargmaitri.in'}
+            Questions? Reply to this email or write to ${process.env.SUPPORT_EMAIL || 'support@nisargmaitri.in'}
           </p>
         </div>
       </div>
@@ -373,11 +370,8 @@ const generateCancellationEmail = (order) => {
       <div style="background-color: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
         
         <!-- Header -->
-        <div style="text-align: center; margin-bottom: 25px;">
-          <div style="width: 60px; height: 60px; background-color: #fef2f2; border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center;">
-            <span style="font-size: 30px; line-height: 60px;">❌</span>
-          </div>
-          <h2 style="color: #dc2626; margin: 0; font-size: 24px;">Order Cancelled</h2>
+        <div style="text-align: center; margin-bottom: 25px; padding-top: 10px; border-top: 4px solid #dc2626;">
+          <h2 style="color: #dc2626; margin: 15px 0 0; font-size: 24px;">Order Cancelled</h2>
           <p style="color: #888; margin: 8px 0 0; font-size: 14px;">Order #${order.orderId}</p>
         </div>
 
@@ -385,12 +379,12 @@ const generateCancellationEmail = (order) => {
         <p style="font-size: 15px; color: #333; margin-bottom: 5px;">Dear ${customerName},</p>
         <p style="font-size: 15px; color: #555; margin-bottom: 25px; line-height: 1.6;">
           We regret to inform you that your order <strong>#${order.orderId}</strong> has been 
-          <strong style="color: #dc2626;">cancelled</strong>. We apologize for any inconvenience caused.
+          <strong style="color: #dc2626;">cancelled</strong>. We apologize for any inconvenience.
         </p>
 
         <!-- Order Summary -->
         <div style="background-color: #fef8f8; padding: 18px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #dc2626;">
-          <h3 style="color: #b91c1c; margin: 0 0 12px; font-size: 16px;">Cancelled Order Details</h3>
+          <h3 style="color: #b91c1c; margin: 0 0 12px; font-size: 16px;">Order Details</h3>
           <p style="margin: 4px 0; font-size: 14px;"><strong>Order ID:</strong> ${order.orderId}</p>
           <p style="margin: 4px 0; font-size: 14px;"><strong>Total:</strong> ₹${Number(order.total || 0).toFixed(2)}</p>
           <p style="margin: 4px 0; font-size: 14px;"><strong>Payment Method:</strong> ${order.paymentMethod || 'N/A'}</p>
@@ -412,19 +406,17 @@ const generateCancellationEmail = (order) => {
         </table>
 
         <!-- Refund Info -->
-        <div style="text-align: center; padding: 18px; background-color: #fffbeb; border-radius: 8px; margin-bottom: 20px; border: 1px solid #fde68a;">
-          <p style="margin: 0 0 5px; color: #92400e; font-weight: bold; font-size: 14px;">
-            💰 Refund Information
-          </p>
+        <div style="padding: 18px; background-color: #fffbeb; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #d97706;">
+          <h3 style="margin: 0 0 8px; color: #92400e; font-size: 14px;">Refund Information</h3>
           <p style="margin: 0; color: #78350f; font-size: 13px;">
             ${refundNote}
           </p>
         </div>
 
         <!-- CTA -->
-        <div style="text-align: center; padding: 18px; background-color: #e8f5e8; border-radius: 8px; margin-bottom: 20px;">
+        <div style="text-align: center; padding: 18px; background-color: #f8faf9; border-radius: 8px; margin-bottom: 20px;">
           <p style="margin: 0 0 8px; color: #2c5f41; font-weight: bold; font-size: 14px;">
-            We'd love to have you back! 🌿
+            We'd love to have you back
           </p>
           <p style="margin: 0; color: #666; font-size: 13px;">
             Visit <a href="https://nisargmaitri.in" style="color: #2c5f41; text-decoration: underline;">nisargmaitri.in</a> to explore our eco-friendly products.
@@ -434,10 +426,10 @@ const generateCancellationEmail = (order) => {
         <!-- Footer -->
         <div style="text-align: center; border-top: 1px solid #eee; padding-top: 15px;">
           <p style="margin: 0; color: #aaa; font-size: 12px;">
-            Nisarg Maitri — Eco-Friendly Products
+            Nisarg Maitri | Eco-Friendly Products
           </p>
           <p style="margin: 5px 0 0; color: #aaa; font-size: 12px;">
-            If you have any questions, reply to this email or contact us at ${process.env.SUPPORT_EMAIL || 'support@nisargmaitri.in'}
+            Questions? Reply to this email or write to ${process.env.SUPPORT_EMAIL || 'support@nisargmaitri.in'}
           </p>
         </div>
       </div>
