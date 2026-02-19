@@ -115,7 +115,7 @@ const OverviewTab = ({
                 key={o.orderId}
                 className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 cursor-pointer transition-colors"
                 onClick={() => {
-                  setSelectedOrder(o);
+                  setSelectedOrder({...o});
                   setActiveTab("orders");
                 }}
               >

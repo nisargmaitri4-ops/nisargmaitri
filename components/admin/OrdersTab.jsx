@@ -156,7 +156,10 @@ const OrdersTab = ({
                   return (
                     <tr
                       key={o.orderId}
-                      className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors"
+                      onClick={() => setSelectedOrder({...o})}
+                      role="button"
+                      tabIndex={0}
+                      className="border-b border-gray-50 last:border-0 hover:bg-gray-50/50 transition-colors cursor-pointer"
                     >
                       <td className="px-5 py-3 font-medium text-[#1A3329]">
                         {o.orderId}
@@ -196,14 +199,14 @@ const OrdersTab = ({
                       <td className="px-5 py-3">
                         <div className="flex items-center justify-center gap-1">
                           <button
-                            onClick={() => setSelectedOrder(o)}
+                            onClick={(e) => { e.stopPropagation(); setSelectedOrder({...o}); }}
                             className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400 hover:text-[#1A3329] transition"
                             title="View"
                           >
                             <IconEye />
                           </button>
                           <button
-                            onClick={() => downloadPDF(o)}
+                            onClick={(e) => { e.stopPropagation(); downloadPDF(o); }}
                             className="p-1.5 rounded-md hover:bg-gray-100 text-gray-400 hover:text-[#1A3329] transition"
                             title="Download"
                           >

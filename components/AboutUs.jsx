@@ -497,10 +497,45 @@ const AboutPage = () => {
               title="Our Founder" 
               description="Meet the visionary behind Nisargmaitri and learn about her journey toward environmental conservation."
             />
-            <div className="max-w-3xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
-              <div className="sm:flex">
-                <div className="sm:flex-shrink-0">
-                  <div className="h-48 sm:h-full sm:w-48 bg-[#E6F0ED] flex items-center justify-center overflow-hidden">
+
+            {/* Mobile Layout: Full photo card */}
+            <div className="sm:hidden max-w-sm mx-auto">
+              <div className="bg-white rounded-2xl shadow-lg overflow-hidden">
+                <div className="w-full">
+                  <img 
+                    src={founder.image} 
+                    alt={founder.name}
+                    className="w-full h-auto object-contain"
+                    onError={(e) => { e.target.src = FALLBACK_IMAGE; }}
+                  />
+                </div>
+                <div className="p-5 text-center">
+                  <div className="text-sm font-semibold text-[#2A5446] mb-1">{founder.role}</div>
+                  <h3 className="text-lg font-bold text-[#1D3B30] mb-3">{founder.name}</h3>
+                  <p className="text-xs text-gray-700 leading-relaxed mb-4">{founder.bio}</p>
+                  <div className="flex items-center justify-center space-x-4">
+                    {founder.socialLinks.map((link, index) => (
+                      <a 
+                        key={index}
+                        href={link.url} 
+                        className="w-9 h-9 rounded-full bg-[#E6F0ED] flex items-center justify-center text-[#2A5446] hover:bg-[#1D3B30] hover:text-white transition-all duration-200"
+                        aria-label={`${founder.name}'s ${link.platform}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                      >
+                        {link.icon}
+                      </a>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Desktop Layout: Horizontal card */}
+            <div className="hidden sm:block max-w-3xl mx-auto bg-white rounded-xl shadow-md overflow-hidden">
+              <div className="flex">
+                <div className="flex-shrink-0">
+                  <div className="h-full w-48 bg-[#E6F0ED] overflow-hidden">
                     <img 
                       src={founder.image} 
                       alt={founder.name}
@@ -509,10 +544,10 @@ const AboutPage = () => {
                     />
                   </div>
                 </div>
-                <div className="p-4 sm:p-6">
-                  <div className="text-sm sm:text-base font-semibold text-[#2A5446]">{founder.role}</div>
-                  <h3 className="mt-1 text-base sm:text-lg md:text-xl font-bold text-[#1D3B30]">{founder.name}</h3>
-                  <p className="mt-3 text-xs sm:text-sm text-gray-700">{founder.bio}</p>
+                <div className="p-6">
+                  <div className="text-base font-semibold text-[#2A5446]">{founder.role}</div>
+                  <h3 className="mt-1 text-lg md:text-xl font-bold text-[#1D3B30]">{founder.name}</h3>
+                  <p className="mt-3 text-sm text-gray-700">{founder.bio}</p>
                   <div className="mt-4 flex items-center space-x-3">
                     {founder.socialLinks.map((link, index) => (
                       <a 
