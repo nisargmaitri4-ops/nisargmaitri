@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const sanitize = require('sanitize-html');
 const Order = require('../models/Order.cjs');
 const { authenticateAdmin } = require('../middleware/authenticateAdmin.cjs');
-const { sendEmail, generateOrderEmail } = require('../utils/email.cjs');
+const { sendEmail, generateOrderEmail, generateDeliveryEmail, generateCancellationEmail } = require('../utils/email.cjs');
 
 // Use VITE_ prefixed env var for Razorpay key ID (shared with frontend)
 const razorpay = new Razorpay({
@@ -708,6 +708,37 @@ router.put('/:orderId/status', authenticateAdmin, async (req, res) => {
     await order.save();
 
     console.log(`Order status updated: ${orderId} → ${orderStatus}`);
+
+    // Send delivery confirmation email when marked as Delivered
+    if (orderStatus === 'Delivered' && order.customer?.email) {
+      try {
+        const html = generateDeliveryEmail(order.toObject());
+        await sendEmail({
+          email: order.customer.email,
+          subject: `Order Delivered - ${order.orderId} | Nisarg Maitri`,
+          html,
+        });
+        console.log(`Delivery email sent for order: ${orderId} to ${order.customer.email.replace(/(.{2}).*@/, '$1***@')}`);
+      } catch (emailError) {
+        console.error(`Failed to send delivery email for ${orderId}:`, emailError.message);
+      }
+    }
+
+    // Send cancellation email when marked as Cancelled
+    if (orderStatus === 'Cancelled' && order.customer?.email) {
+      try {
+        const html = generateCancellationEmail(order.toObject());
+        await sendEmail({
+          email: order.customer.email,
+          subject: `Order Cancelled - ${order.orderId} | Nisarg Maitri`,
+          html,
+        });
+        console.log(`Cancellation email sent for order: ${orderId} to ${order.customer.email.replace(/(.{2}).*@/, '$1***@')}`);
+      } catch (emailError) {
+        console.error(`Failed to send cancellation email for ${orderId}:`, emailError.message);
+      }
+    }
+
     res.status(200).json({ success: true, order });
   } catch (error) {
     handleError(res, error, 'Failed to update order status');

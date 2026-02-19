@@ -19,7 +19,7 @@ const generateOrderEmail = (order) => {
 
   const requiredFields = ['orderId', 'customer', 'items', 'shippingAddress', 'shippingMethod'];
   const missingFields = requiredFields.filter(field => !order[field]);
-  
+
   if (missingFields.length > 0) {
     console.error('Missing required order fields:', missingFields, { order });
     throw new Error(`Missing required order fields: ${missingFields.join(', ')}`);
@@ -172,40 +172,40 @@ const generateOrderEmail = (order) => {
     </div>
   `;
 
-  console.log('Generated email content for orderId:', order.orderId, { 
+  console.log('Generated email content for orderId:', order.orderId, {
     htmlLength: html.length,
     itemCount: order.items.length,
-    total: total 
+    total: total
   });
-  
+
   return html;
 };
 
 const sendEmail = async ({ email, subject, html }) => {
   // Enhanced parameter validation
   const errors = [];
-  
+
   if (!email || typeof email !== 'string') {
     errors.push('email (valid email address)');
   } else if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) {
     errors.push('email (valid format)');
   }
-  
+
   if (!subject || typeof subject !== 'string' || subject.trim().length === 0) {
     errors.push('subject (non-empty string)');
   }
-  
+
   if (!html || typeof html !== 'string' || html.trim().length === 0) {
     errors.push('html (non-empty content)');
   }
 
   if (errors.length > 0) {
     const errorMessage = `Missing or invalid required fields: ${errors.join(', ')}`;
-    console.error('Email validation failed:', { 
-      email, 
-      subject, 
+    console.error('Email validation failed:', {
+      email,
+      subject,
       htmlLength: html ? html.length : 0,
-      errors 
+      errors
     });
     throw new Error(errorMessage);
   }
@@ -225,24 +225,24 @@ const sendEmail = async ({ email, subject, html }) => {
 
   try {
     console.log(`Attempting to send email to ${email} with subject: "${subject}"`);
-    
+
     const info = await transporter.sendMail(mailOptions);
-    
+
     console.log(`Email sent successfully to ${email}`, {
       messageId: info.messageId,
       response: info.response,
       subject: subject
     });
-    
+
     return info;
   } catch (error) {
-    console.error(`Failed to send email to ${email}:`, { 
-      error: error.message, 
+    console.error(`Failed to send email to ${email}:`, {
+      error: error.message,
       code: error.code,
       command: error.command,
       stack: process.env.NODE_ENV === 'development' ? error.stack : undefined
     });
-    
+
     // Provide more specific error messages
     let errorMessage = 'Failed to send email';
     if (error.code === 'EAUTH') {
@@ -254,9 +254,195 @@ const sendEmail = async ({ email, subject, html }) => {
     } else {
       errorMessage = `Failed to send email: ${error.message}`;
     }
-    
+
     throw new Error(errorMessage);
   }
 };
 
-module.exports = { sendEmail, generateOrderEmail };
+const generateDeliveryEmail = (order) => {
+  if (!order || !order.orderId || !order.customer) {
+    throw new Error('Order data is required for delivery email');
+  }
+
+  const customerName = `${order.customer.firstName} ${order.customer.lastName}`;
+  const addr = [
+    order.shippingAddress?.address1,
+    order.shippingAddress?.address2,
+    order.shippingAddress?.city,
+    order.shippingAddress?.state,
+    order.shippingAddress?.pincode,
+  ].filter(Boolean).join(', ');
+
+  const itemsRows = (order.items || []).map(item => `
+    <tr>
+      <td style="border: 1px solid #e0e0e0; padding: 10px; text-align: left;">${item.name || 'Item'}</td>
+      <td style="border: 1px solid #e0e0e0; padding: 10px; text-align: center;">${item.quantity}</td>
+      <td style="border: 1px solid #e0e0e0; padding: 10px; text-align: right;">₹${Number(item.price || 0).toFixed(2)}</td>
+    </tr>
+  `).join('');
+
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #f4f7f5;">
+      <div style="background-color: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+        
+        <!-- Header -->
+        <div style="text-align: center; margin-bottom: 25px;">
+          <div style="width: 60px; height: 60px; background-color: #e8f5e8; border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center;">
+            <span style="font-size: 30px; line-height: 60px;">✅</span>
+          </div>
+          <h2 style="color: #2c5f41; margin: 0; font-size: 24px;">Order Delivered!</h2>
+          <p style="color: #888; margin: 8px 0 0; font-size: 14px;">Order #${order.orderId}</p>
+        </div>
+
+        <!-- Message -->
+        <p style="font-size: 15px; color: #333; margin-bottom: 5px;">Dear ${customerName},</p>
+        <p style="font-size: 15px; color: #555; margin-bottom: 25px; line-height: 1.6;">
+          Great news! Your order has been <strong style="color: #2c5f41;">successfully delivered</strong>. 
+          We hope you love your eco-friendly products from Nisarg Maitri!
+        </p>
+
+        <!-- Order Summary -->
+        <div style="background-color: #f8faf9; padding: 18px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #2c5f41;">
+          <h3 style="color: #2c5f41; margin: 0 0 12px; font-size: 16px;">Order Summary</h3>
+          <p style="margin: 4px 0; font-size: 14px;"><strong>Order ID:</strong> ${order.orderId}</p>
+          <p style="margin: 4px 0; font-size: 14px;"><strong>Total:</strong> ₹${Number(order.total || 0).toFixed(2)}</p>
+          <p style="margin: 4px 0; font-size: 14px;"><strong>Delivered to:</strong> ${addr || 'N/A'}</p>
+        </div>
+
+        <!-- Items -->
+        <h3 style="color: #2c5f41; margin: 0 0 10px; font-size: 16px;">Items Delivered</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px;">
+          <thead>
+            <tr style="background-color: #2c5f41; color: white;">
+              <th style="border: 1px solid #2c5f41; padding: 10px; text-align: left; font-size: 13px;">Product</th>
+              <th style="border: 1px solid #2c5f41; padding: 10px; text-align: center; font-size: 13px;">Qty</th>
+              <th style="border: 1px solid #2c5f41; padding: 10px; text-align: right; font-size: 13px;">Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsRows}
+          </tbody>
+        </table>
+
+        <!-- CTA -->
+        <div style="text-align: center; padding: 20px; background-color: #e8f5e8; border-radius: 8px; margin-bottom: 20px;">
+          <p style="margin: 0 0 8px; color: #2c5f41; font-weight: bold; font-size: 15px;">
+            Thank you for choosing Nisarg Maitri! 🌿
+          </p>
+          <p style="margin: 0; color: #666; font-size: 13px;">
+            Your purchase supports sustainable and eco-friendly living.
+          </p>
+        </div>
+
+        <!-- Footer -->
+        <div style="text-align: center; border-top: 1px solid #eee; padding-top: 15px;">
+          <p style="margin: 0; color: #aaa; font-size: 12px;">
+            Nisarg Maitri — Eco-Friendly Products
+          </p>
+          <p style="margin: 5px 0 0; color: #aaa; font-size: 12px;">
+            If you have any questions, reply to this email or contact us at ${process.env.SUPPORT_EMAIL || 'support@nisargmaitri.in'}
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+const generateCancellationEmail = (order) => {
+  if (!order || !order.orderId || !order.customer) {
+    throw new Error('Order data is required for cancellation email');
+  }
+
+  const customerName = `${order.customer.firstName} ${order.customer.lastName}`;
+
+  const itemsRows = (order.items || []).map(item => `
+    <tr>
+      <td style="border: 1px solid #e0e0e0; padding: 10px; text-align: left;">${item.name || 'Item'}</td>
+      <td style="border: 1px solid #e0e0e0; padding: 10px; text-align: center;">${item.quantity}</td>
+      <td style="border: 1px solid #e0e0e0; padding: 10px; text-align: right;">₹${Number(item.price || 0).toFixed(2)}</td>
+    </tr>
+  `).join('');
+
+  const isCOD = order.paymentMethod === 'COD';
+  const refundNote = isCOD
+    ? 'Since this was a Cash on Delivery order, no payment was charged.'
+    : 'If any payment was made, it will be refunded to your original payment method within 5-7 business days.';
+
+  return `
+    <div style="font-family: Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 20px; background-color: #fdf4f4;">
+      <div style="background-color: white; padding: 30px; border-radius: 12px; box-shadow: 0 2px 8px rgba(0,0,0,0.08);">
+        
+        <!-- Header -->
+        <div style="text-align: center; margin-bottom: 25px;">
+          <div style="width: 60px; height: 60px; background-color: #fef2f2; border-radius: 50%; margin: 0 auto 15px; display: flex; align-items: center; justify-content: center;">
+            <span style="font-size: 30px; line-height: 60px;">❌</span>
+          </div>
+          <h2 style="color: #dc2626; margin: 0; font-size: 24px;">Order Cancelled</h2>
+          <p style="color: #888; margin: 8px 0 0; font-size: 14px;">Order #${order.orderId}</p>
+        </div>
+
+        <!-- Message -->
+        <p style="font-size: 15px; color: #333; margin-bottom: 5px;">Dear ${customerName},</p>
+        <p style="font-size: 15px; color: #555; margin-bottom: 25px; line-height: 1.6;">
+          We regret to inform you that your order <strong>#${order.orderId}</strong> has been 
+          <strong style="color: #dc2626;">cancelled</strong>. We apologize for any inconvenience caused.
+        </p>
+
+        <!-- Order Summary -->
+        <div style="background-color: #fef8f8; padding: 18px; border-radius: 8px; margin-bottom: 20px; border-left: 4px solid #dc2626;">
+          <h3 style="color: #b91c1c; margin: 0 0 12px; font-size: 16px;">Cancelled Order Details</h3>
+          <p style="margin: 4px 0; font-size: 14px;"><strong>Order ID:</strong> ${order.orderId}</p>
+          <p style="margin: 4px 0; font-size: 14px;"><strong>Total:</strong> ₹${Number(order.total || 0).toFixed(2)}</p>
+          <p style="margin: 4px 0; font-size: 14px;"><strong>Payment Method:</strong> ${order.paymentMethod || 'N/A'}</p>
+        </div>
+
+        <!-- Items -->
+        <h3 style="color: #b91c1c; margin: 0 0 10px; font-size: 16px;">Items in This Order</h3>
+        <table style="width: 100%; border-collapse: collapse; margin-bottom: 25px;">
+          <thead>
+            <tr style="background-color: #b91c1c; color: white;">
+              <th style="border: 1px solid #b91c1c; padding: 10px; text-align: left; font-size: 13px;">Product</th>
+              <th style="border: 1px solid #b91c1c; padding: 10px; text-align: center; font-size: 13px;">Qty</th>
+              <th style="border: 1px solid #b91c1c; padding: 10px; text-align: right; font-size: 13px;">Price</th>
+            </tr>
+          </thead>
+          <tbody>
+            ${itemsRows}
+          </tbody>
+        </table>
+
+        <!-- Refund Info -->
+        <div style="text-align: center; padding: 18px; background-color: #fffbeb; border-radius: 8px; margin-bottom: 20px; border: 1px solid #fde68a;">
+          <p style="margin: 0 0 5px; color: #92400e; font-weight: bold; font-size: 14px;">
+            💰 Refund Information
+          </p>
+          <p style="margin: 0; color: #78350f; font-size: 13px;">
+            ${refundNote}
+          </p>
+        </div>
+
+        <!-- CTA -->
+        <div style="text-align: center; padding: 18px; background-color: #e8f5e8; border-radius: 8px; margin-bottom: 20px;">
+          <p style="margin: 0 0 8px; color: #2c5f41; font-weight: bold; font-size: 14px;">
+            We'd love to have you back! 🌿
+          </p>
+          <p style="margin: 0; color: #666; font-size: 13px;">
+            Visit <a href="https://nisargmaitri.in" style="color: #2c5f41; text-decoration: underline;">nisargmaitri.in</a> to explore our eco-friendly products.
+          </p>
+        </div>
+
+        <!-- Footer -->
+        <div style="text-align: center; border-top: 1px solid #eee; padding-top: 15px;">
+          <p style="margin: 0; color: #aaa; font-size: 12px;">
+            Nisarg Maitri — Eco-Friendly Products
+          </p>
+          <p style="margin: 5px 0 0; color: #aaa; font-size: 12px;">
+            If you have any questions, reply to this email or contact us at ${process.env.SUPPORT_EMAIL || 'support@nisargmaitri.in'}
+          </p>
+        </div>
+      </div>
+    </div>
+  `;
+};
+
+module.exports = { sendEmail, generateOrderEmail, generateDeliveryEmail, generateCancellationEmail };
