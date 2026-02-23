@@ -1,11 +1,13 @@
 import React from "react";
 import { cls } from "./helpers";
-import { IconGrid, IconClipboard, IconBox, IconLogout, IconX, IconSettings } from "./Icons";
+import { IconGrid, IconClipboard, IconBox, IconLogout, IconX, IconSettings, IconServices, IconWork } from "./Icons";
 
 const navItems = [
   { id: "overview", label: "Overview", Icon: IconGrid },
   { id: "orders", label: "Orders", Icon: IconClipboard },
   { id: "products", label: "Products", Icon: IconBox },
+  { id: "services", label: "Services", Icon: IconServices },
+  { id: "work", label: "Work", Icon: IconWork },
   { id: "settings", label: "Settings", Icon: IconSettings },
 ];
 

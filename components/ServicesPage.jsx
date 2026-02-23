@@ -1,4 +1,4 @@
-import React, { useState, useRef } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { 
   Search, 
   ChevronRight, 
@@ -17,6 +17,7 @@ import {
 import Navbar from './Navbar';
 import Footer from './Footer';
 import SEOHead from './SEOHead';
+import axios from 'axios';
 
 // Simplified Service Card Component
 const ServiceCard = ({ icon, title, description, category }) => (
@@ -316,86 +317,104 @@ const ServicesPage = () => {
   const [selectedProject, setSelectedProject] = useState(null);
   const servicesRef = useRef(null);
   const portfolioRef = useRef(null);
+
+  const getApiUrl = () => {
+    if (import.meta.env.VITE_API_URL) return import.meta.env.VITE_API_URL;
+    if (import.meta.env.PROD) return '';
+    return 'http://localhost:5001';
+  };
+
+  // Icon mapping for dynamic services
+  const iconMap = {
+    BarChart4: <BarChart4 size={18} />,
+    GraduationCap: <GraduationCap size={18} />,
+    Leaf: <Leaf size={18} />,
+    Building: <Building size={18} />,
+    Users: <Users size={18} />,
+    PenTool: <PenTool size={18} />,
+    FileCheck: <FileCheck size={18} />,
+  };
   
+  // ── Hardcoded fallback data ──
+  const fallbackServices = [
+    { id: 1, title: 'Workshops & Seminars on Climate Change, Plastic Pollution, Biodiversity, etc.', description: 'As Planet Warriors, we conduct engaging workshops and seminars on key environmental issues like climate change, plastic pollution, and biodiversity loss.', icon: 'BarChart4' },
+    { id: 2, title: 'Eco-Education Programs in schools and colleges', description: 'Eco-Education Programs in schools and colleges aim to instill environmental awareness, responsibility, and sustainable practices among students.', icon: 'GraduationCap' },
+    { id: 3, title: 'Waste Management & Recycling Services', description: 'Our Waste Management & Recycling Services focus on promoting responsible waste disposal and resource recovery.', icon: 'Leaf' },
+    { id: 4, title: 'Plastic-Free Lifestyle Tips', description: 'Adopting a plastic-free lifestyle starts with simple swaps: use cloth bags, carry a reusable water bottle and cutlery.', icon: 'Building' },
+    { id: 5, title: 'Zero-Waste Event Planning', description: 'Zero-Waste Event Planning focuses on organizing eco-friendly weddings and events that minimize environmental impact.', icon: 'Users' },
+    { id: 6, title: 'Urban Farming and Terrace Gardening Consultation', description: 'Our Urban Gardening and Terrace Farming consultancy empowers individuals and communities to grow their own food.', icon: 'PenTool' },
+    { id: 7, title: 'Our Sustainable Menstruation Awareness services', description: 'Our Sustainable Menstruation Awareness services educate individuals on eco-friendly menstrual choices.', icon: 'PenTool' },
+  ];
+
+  const fallbackProjects = [
+    { id: 1, title: 'Empowering Education: Gifting School Essentials', details: 'We support schools by gifting essential school supplies and stationery.', image: '/WhatsApp Image 2025-07-26 at 5.54.59 PM.jpeg', tags: [] },
+    { id: 2, title: 'Water Pots for Street Animals', details: 'We have initiated the Water Pots for Street Animals campaign in Greater Noida.', image: '/WhatsApp Image 2025-07-26 at 5.54.18 PM.jpeg', tags: [] },
+    { id: 3, title: 'Feeding Street Animals', details: 'We actively feed street animals, ensuring they receive regular, nutritious meals.', image: '/WhatsApp Image 2025-07-26 at 5.55.08 PM.jpeg', tags: [] },
+    { id: 4, title: 'Treatment to Street Animals', details: 'We provide vaccinations to street animals to protect them from deadly diseases.', image: '/WhatsApp Image 2025-07-26 at 5.55.05 PM.jpeg', tags: [] },
+    { id: 5, title: 'Reducing Textile Waste', details: 'We upcycle boutique waste into useful products like bags, accessories, and home décor items.', image: '/WhatsApp Image 2025-07-26 at 5.55.01 PM.jpeg', tags: [] },
+    { id: 6, title: 'Bioenzyme and Seed Ball Making Workshops', details: 'We conducted Bioenzyme and Seed Ball Making Workshops in college.', image: '/WhatsApp Image 2025-07-26 at 5.54.39 PM.jpeg', tags: [] },
+    { id: 7, title: 'Supporting and Uplifting Lives in Old Age Homes', details: 'We support old age homes by providing essential supplies and spending quality time.', image: '/WhatsApp Image 2025-07-26 at 5.55.03 PM.jpeg', tags: [] },
+  ];
+
+  // ── Dynamic data state ──
+  const [services, setServices] = useState(fallbackServices);
+  const [projects, setProjects] = useState(fallbackProjects);
+
+  // ── Fetch from API ──
+  useEffect(() => {
+    const fetchData = async () => {
+      try {
+        const [sRes, wRes] = await Promise.all([
+          axios.get(getApiUrl() + '/api/services', { timeout: 8000 }).catch(() => null),
+          axios.get(getApiUrl() + '/api/work', { timeout: 8000 }).catch(() => null),
+        ]);
+        if (sRes?.data?.length > 0) {
+          setServices(sRes.data.map((s, i) => ({
+            id: s._id || i + 1,
+            title: s.title,
+            description: s.description,
+            icon: s.icon || 'Leaf',
+          })));
+        }
+        if (wRes?.data?.length > 0) {
+          setProjects(wRes.data.map((w, i) => ({
+            id: w._id || i + 1,
+            title: w.title,
+            description: w.description || '',
+            details: w.details || '',
+            results: w.results || '',
+            image: w.image || '',
+            gallery: w.gallery || [],
+            tags: w.tags || [],
+          })));
+        }
+      } catch {
+        // Use fallback data on error
+      }
+    };
+    fetchData();
+  }, []);
+
   // Service Categories
   const serviceCategories = [
     { id: 'all', name: 'All Services' },
-    { id: 'consulting', name: 'Consulting' },
-    { id: 'education', name: 'Education' },
-    { id: 'implementation', name: 'Implementation' },
-    { id: 'community', name: 'Community' },
   ];
 
   // Project Categories  
-  const projectCategories = [
-   
-  ];
+  const projectCategories = [];
 
-  // Simple placeholder images for local use
+  // Carousel images
   const featuredImages = [
     "https://images.unsplash.com/photo-1586618812060-54a6fedc132c?q=80&w=2969&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     "https://images.unsplash.com/photo-1542601906990-b4d3fb778b09?q=80&w=3000&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D",
     "https://images.unsplash.com/photo-1614650394712-3377ac03e9cb?q=80&w=3174&auto=format&fit=crop&ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D"
   ];
 
-  // Services Data
-  const services = [
-    {
-      id: 1,
-      title: 'Workshops & Seminars on Climate Change, Plastic Pollution, Biodiversity, etc.',
-      description: 'As Planet Warriors, we conduct engaging workshops and seminars on key environmental issues like climate change, plastic pollution, and biodiversity loss. These sessions raise awareness, foster eco-conscious thinking, and empower communities to take action. Using interactive tools such as visuals, activities, and real-life case studies, we tailor content for schools, colleges, housing societies, and corporates. Participants learn practical steps for sustainable living, waste reduction, and conservation.  These workshops align with global sustainability goals and nurture responsible citizens committed to protecting our planet for future generations.',
-      icon: <BarChart4 size={18} />,
-      
-    },
-    {
-      id: 2,
-      title: 'Eco-Education Programs in schools and colleges',
-      description: 'Eco-Education Programs in schools and colleges aim to instill environmental awareness, responsibility, and sustainable practices among students. These programs integrate interactive lessons on climate change, biodiversity, waste management, and conservation into the academic setting. Through activities like green clubs, eco-quizzes, clean-up drives, and hands-on projects such as composting or tree planting, students learn the importance of protecting natural resources. We also train teachers and staff to incorporate sustainability into daily routines and curriculum. By engaging youth early, we nurture environmentally conscious citizens who can lead positive change and contribute to a greener, healthier future aligned with global sustainability goals.',
-      icon: <GraduationCap size={18} />,
-    
-    },
-    {
-      id: 3,
-      title: 'Waste Management & Recycling Services',
-      description: 'Our Waste Management & Recycling Services focus on promoting responsible waste disposal and resource recovery within communities, institutions, and households. We conduct awareness drives, set up waste segregation systems, and organize recycling campaigns for plastics, e-waste, paper, and textiles. We also guide on setting up home and community composting for organic waste, reducing landfill burden. Through hands-on training and eco-audits, we help identify waste hotspots and offer sustainable alternatives. Our goal is to build zero-waste societies by encouraging reduce-reuse-recycle habits and linking communities with certified recyclers, contributing to cleaner environments and supporting a circular economy model. ',
-      icon: <Leaf size={18} />,
-  
-    },
-    {
-      id: 4,
-      title: 'Plastic-Free Lifestyle Tips',
-      description: 'Adopting a plastic-free lifestyle starts with simple swaps: use cloth bags instead of plastic, carry a reusable water bottle and cutlery, and choose glass or metal containers over plastic ones. Avoid single-use items like straws and packaged foods. We provide tailored eco-product recommendations that promote sustainable living, including biodegradable alternatives to plastic, eco-friendly refills, reusable home essentials, and low-impact personal care items. These suggestions help individuals and organizations reduce their environmental footprint without compromising convenience. By choosing products made from natural, compostable, or recycled materials, users support responsible consumption, minimize waste, and contribute to a greener, healthier planet through informed, conscious purchasing decisions.',
-      icon: <Building size={18} />,
- 
-    },
-    {
-      id: 5,
-      title: 'Zero-Waste Event Planning (eco-friendly weddings, events)',
-      description: 'Zero-Waste Event Planning focuses on organizing eco-friendly weddings and events that minimize environmental impact. We help clients reduce waste through reusable décor, digital invitations, local and organic catering, compostable tableware, and waste segregation systems. Emphasis is placed on reducing single-use items and partnering with sustainable vendors. These thoughtful choices not only lower the carbon footprint but also set a meaningful example of conscious celebration and responsible event management.',
-      icon: <Users size={18} />,
-  
-    },
-    {
-      id: 6,
-      title: 'Urban Farming and Terrace Gardening Consultation ',
-      description: 'Our Urban Gardening and Terrace Farming consultancy empowers individuals and communities to grow their own food in limited spaces. We offer guidance on soil preparation, container selection, seasonal planting, composting, and organic pest control. Whether its a kitchen garden or a full-scale terrace farm, we help design sustainable setups that promote food security, reduce carbon footprint, and reconnect people with nature, turning unused urban spaces into green, productive oases.',
-      icon: <PenTool size={18} />,
-    
-    },
-    {
-      id: 7,
-      title: 'Our Sustainable Menstruation Awareness services',
-      description: 'Our Sustainable Menstruation Awareness services educate individuals, especially young women and girls, on eco-friendly menstrual choices. We promote the use of reusable products like menstrual cups, cloth pads, and period panty to reduce plastic waste and health risks. Through workshops, demonstrations, and community outreach, we break taboos, encourage hygienic practices, and empower menstruators to make informed, sustainable decisions that benefit both personal health and the environment.',
-      icon: <PenTool size={18} />,
-    
-    },
-  ];
-
-  // Featured Services Data - simplified without external images
+  // Featured Services Data
   const featuredServices = [
     {
       title: 'Empowering Education: Gifting School Essentials',
-      description: 'We support schools by gifting essential school supplies and stationery etc. This initiative helps reduce the burden on families, encourages regular attendance, and creates a more inclusive and positive learning environment. By empowering students with the tools they need, we contribute to a stronger, more equitable education system.',
+      description: 'We support schools by gifting essential school supplies and stationery.',
       icon: <BarChart4 size={20} />,
       features: [
         { title: 'Waste Audit & Analysis', description: 'Assessment of current waste patterns and opportunities.' },
@@ -415,80 +434,7 @@ const ServicesPage = () => {
     },
   ];
 
-  // Projects Data - simplified with placeholder images
-  const projects = [
-    {
-      id: 1,
-      title: 'Empowering Education: Gifting School Essentials',
-    
-      details: 'We support schools by gifting essential school supplies and stationery etc. This initiative helps reduce the burden on families, encourages regular attendance, and creates a more inclusive and positive learning environment. By empowering students with the tools they need, we contribute to a stronger, more equitable education system.',
-   
-      image: "/WhatsApp Image 2025-07-26 at 5.54.59 PM.jpeg",
-      tags: [],
-    
-    },
-    {
-      id: 2,
-      title: 'Water Pots for Street Animals',
-      description: 'Implemented comprehensive recycling system at local school',
-      details: 'We have initiated the Water Pots for Street Animals campaign in Greater Noida to provide clean drinking water for stray animals during extreme heat. Since many areas lack natural water sources, we install and regularly refill done by volunteers of Save Animal, Greater Noida. This compassionate step helps reduce animal suffering and promotes a more humane, responsible society.',
-    
-      image: "/WhatsApp Image 2025-07-26 at 5.54.18 PM.jpeg",
-      tags: [],
-     
-    },
-    {
-      id: 3,
-      title: 'Feeding Street Animals',
-      
-      details: 'We actively feed street animals, ensuring they receive regular, nutritious meals. This initiative supports the well-being of stray animals reduces hunger-related aggression, and fosters compassion within communities.',
-      image: "/WhatsApp Image 2025-07-26 at 5.55.08 PM.jpeg",
-      tags: []
-     
-    },
-    {
-      id: 4,
-      title: 'Treatment to Street Animals',
-     
-      details: 'We provide vaccinations to street animals to protect them from deadly diseases like rabies, distemper, and parvovirus, contributing to both animal and public health. Additionally, we rescue and transport sick or injured animals to veterinary hospitals for timely treatment. These efforts ensure safer, healthier lives for strays and promote compassion and coexistence in urban communities.',
-     
-      image: "/WhatsApp Image 2025-07-26 at 5.55.05 PM.jpeg",
-      tags: [],
-    
-    },
-    {
-      id: 5,
-      title: 'Reducing Textile Waste',
-     
-      details: 'We upcycle boutique waste into useful products like bags, accessories, and home décor items, creatively reducing textile waste. By repurposing fabric scraps, we promote sustainable fashion,  and prevent tons of cloth from ending up in landfills, encouraging a circular economy and mindful consumption.',
-     
-      image: "/WhatsApp Image 2025-07-26 at 5.55.01 PM.jpeg",
-      tags: [],
-    
-    },
-    {
-      id: 6,
-      title: 'Bioenzyme and Seed Ball Making Workshops',
-     
-      details: 'We conducted Bioenzyme and Seed Ball Making Workshops in college to promote sustainable practices among students. Participants learned to create natural cleaners from kitchen waste and seed balls for reforestation efforts. These hands-on sessions encouraged waste-to-resource thinking, environmental responsibility, and active participation in greening urban spaces and restoring biodiversity.',
-     
-      image: "/WhatsApp Image 2025-07-26 at 5.54.39 PM.jpeg",
-      tags: [],
-    
-    },
-    {
-      id: 7,
-      title: 'Supporting and Uplifting Lives in Old Age Homes',
-     
-      details: 'We support old age homes by providing essential supplies, organizing eatables, and spending quality time with residents through interactive activities and celebrations. Our efforts aim to bring comfort, companionship, and dignity to the elderly, ensuring they feel valued, cared for, and connected to a compassionate community.',
-     
-      image: "/WhatsApp Image 2025-07-26 at 5.55.03 PM.jpeg",
-      tags: [],
-    
-    },
-  ];
-
-  // Filter services based on category and search term
+  // Filter services based on search term
   const filteredServices = services.filter((service) => {
     const matchesCategory = activeCategory === 'all' || service.category === activeCategory;
     const matchesSearch = 
@@ -594,10 +540,10 @@ const ServicesPage = () => {
                 {filteredServices.map((service) => (
                   <ServiceCard
                     key={service.id}
-                    icon={service.icon}
+                    icon={iconMap[service.icon] || <Leaf size={18} />}
                     title={service.title}
                     description={service.description}
-                    category={serviceCategories.find(cat => cat.id === service.category)?.name || service.category}
+                    category={serviceCategories.find(cat => cat.id === service.category)?.name || ''}
                   />
                 ))}
               </div>

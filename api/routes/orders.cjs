@@ -5,7 +5,7 @@ const crypto = require('crypto');
 const sanitize = require('sanitize-html');
 const Order = require('../models/Order.cjs');
 const { authenticateAdmin } = require('../middleware/authenticateAdmin.cjs');
-const { sendEmail, generateOrderEmail, generateDeliveryEmail, generateCancellationEmail } = require('../utils/email.cjs');
+const { sendEmail, generateOrderEmail, generateDeliveryEmail, generateCancellationEmail, generateAdminOrderNotificationEmail } = require('../utils/email.cjs');
 const { generateInvoicePDF } = require('../utils/invoice.cjs');
 
 // Use VITE_ prefixed env var for Razorpay key ID (shared with frontend)
@@ -241,6 +241,22 @@ router.post('/', async (req, res) => {
         console.log(`Confirmation email sent for COD order: ${orderId}`);
       } catch (emailError) {
         console.error(`Failed to send email for COD order ${orderId}:`, emailError.message);
+      }
+
+      // Send admin notification email
+      try {
+        const adminEmail = process.env.SUPPORT_EMAIL || process.env.EMAIL_USER;
+        if (adminEmail) {
+          const adminHtml = generateAdminOrderNotificationEmail(order.toObject());
+          await sendEmail({
+            email: adminEmail,
+            subject: `🛒 New Order - ${order.orderId} | ₹${order.total}`,
+            html: adminHtml,
+          });
+          console.log(`Admin notification sent for COD order: ${orderId}`);
+        }
+      } catch (adminEmailError) {
+        console.error(`Failed to send admin notification for COD order ${orderId}:`, adminEmailError.message);
       }
     }
 
@@ -484,6 +500,22 @@ router.post('/verify-razorpay-payment', async (req, res) => {
       } catch (emailError) {
         console.error(`Failed to send email for Razorpay order ${orderId}:`, emailError.message);
       }
+
+      // Send admin notification email
+      try {
+        const adminEmail = process.env.SUPPORT_EMAIL || process.env.EMAIL_USER;
+        if (adminEmail) {
+          const adminHtml = generateAdminOrderNotificationEmail(order.toObject());
+          await sendEmail({
+            email: adminEmail,
+            subject: `🛒 New Order - ${order.orderId} | ₹${order.total}`,
+            html: adminHtml,
+          });
+          console.log(`Admin notification sent for Razorpay order: ${orderId}`);
+        }
+      } catch (adminEmailError) {
+        console.error(`Failed to send admin notification for Razorpay order ${orderId}:`, adminEmailError.message);
+      }
     }
 
     res.status(200).json({
@@ -665,6 +697,22 @@ router.post('/force-update/:orderId', authenticateAdmin, async (req, res) => {
         order.emailSent = true;
       } catch (emailError) {
         console.error(`Failed to send email for force updated order ${orderId}:`, emailError.message);
+      }
+
+      // Send admin notification email
+      try {
+        const adminEmail = process.env.SUPPORT_EMAIL || process.env.EMAIL_USER;
+        if (adminEmail) {
+          const adminHtml = generateAdminOrderNotificationEmail(order.toObject());
+          await sendEmail({
+            email: adminEmail,
+            subject: `🛒 New Order - ${order.orderId} | ₹${order.total}`,
+            html: adminHtml,
+          });
+          console.log(`Admin notification sent for force-updated order: ${orderId}`);
+        }
+      } catch (adminEmailError) {
+        console.error(`Failed to send admin notification for force-updated order ${orderId}:`, adminEmailError.message);
       }
     }
 

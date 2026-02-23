@@ -17,6 +17,8 @@ const authRoutes = require('./routes/auth.cjs');
 const orderRoutes = require('./routes/orders.cjs');
 const contactRoutes = require('./routes/contact.cjs');
 const productRoutes = require('./routes/products.cjs');
+const serviceRoutes = require('./routes/services.cjs');
+const workRoutes = require('./routes/work.cjs');
 
 // Validate environment variables
 const requiredEnvVars = [
@@ -131,6 +133,8 @@ app.use('/api/auth', authRoutes);
 app.use('/api/orders', orderRoutes);
 app.use('/api/contact', contactRoutes);
 app.use('/api/products', productRoutes);
+app.use('/api/services', serviceRoutes);
+app.use('/api/work', workRoutes);
 
 // Health check endpoint
 app.get('/api/health', (req, res) => {

@@ -525,6 +525,132 @@ const generateCancellationEmail = (order) => {
       </div>
     </div>
   `;
+}; const generateAdminOrderNotificationEmail = (order) => {
+  if (!order || !order.orderId || !order.customer) {
+    throw new Error('Order data is required for admin notification email');
+  }
+
+  const customerName = `${order.customer.firstName} ${order.customer.lastName}`;
+  const addr = [
+    order.shippingAddress?.address1,
+    order.shippingAddress?.address2,
+    order.shippingAddress?.city,
+    order.shippingAddress?.state,
+    order.shippingAddress?.pincode,
+  ].filter(Boolean).join(', ');
+
+  const orderDate = order.createdAt
+    ? new Date(order.createdAt).toLocaleString('en-IN', { timeZone: 'Asia/Kolkata', day: '2-digit', month: 'short', year: 'numeric', hour: '2-digit', minute: '2-digit', hour12: true })
+    : new Date().toLocaleString('en-IN', { timeZone: 'Asia/Kolkata' });
+
+  const itemsRows = (order.items || []).map(item => `
+    <tr>
+      <td style="border: 1px solid #e0e0e0; padding: 10px; text-align: left; font-size: 14px;">${item.name || 'Item'}${item.variant ? ` (${item.variant})` : ''}</td>
+      <td style="border: 1px solid #e0e0e0; padding: 10px; text-align: center; font-size: 14px;">${item.quantity}</td>
+      <td style="border: 1px solid #e0e0e0; padding: 10px; text-align: right; font-size: 14px;">₹${Number(item.price || 0).toFixed(2)}</td>
+      <td style="border: 1px solid #e0e0e0; padding: 10px; text-align: right; font-size: 14px; font-weight: 600;">₹${(item.quantity * item.price).toFixed(2)}</td>
+    </tr>
+  `).join('');
+
+  const subtotal = (order.items || []).reduce((sum, item) => sum + (item.quantity || 0) * (item.price || 0), 0);
+  const shipping = order.shippingMethod?.cost || 0;
+  const discount = order.coupon?.discount || 0;
+  const total = order.total || (subtotal + shipping - discount);
+
+  const paymentMethod = order.razorpayMethod
+    ? `${order.razorpayMethod} (Online)`
+    : order.paymentMethod || 'N/A';
+
+  return `
+    <div style="font-family: 'Segoe UI', Arial, sans-serif; max-width: 600px; margin: 0 auto; padding: 0; background-color: #f0f4f8;">
+      <div style="background-color: #ffffff; border-radius: 12px; overflow: hidden; box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin: 20px;">
+
+        <!-- Header -->
+        <div style="background: linear-gradient(135deg, #1a3329, #2c5f41); padding: 24px 30px; text-align: center;">
+          <h1 style="color: #ffffff; margin: 0; font-size: 20px; font-weight: 700;">🛒 New Order Received!</h1>
+          <p style="color: rgba(255,255,255,0.8); margin: 6px 0 0; font-size: 13px;">${orderDate}</p>
+        </div>
+
+        <!-- Quick Summary -->
+        <div style="padding: 24px 30px;">
+          <table style="width: 100%; border-collapse: collapse;">
+            <tr>
+              <td style="padding: 8px 0; font-size: 14px; color: #6b7280; width: 130px;">Order ID</td>
+              <td style="padding: 8px 0; font-size: 14px; color: #1f2937; font-weight: 700;">${order.orderId}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; font-size: 14px; color: #6b7280;">Customer</td>
+              <td style="padding: 8px 0; font-size: 14px; color: #1f2937; font-weight: 600;">${customerName}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; font-size: 14px; color: #6b7280;">Email</td>
+              <td style="padding: 8px 0; font-size: 14px; color: #1f2937;">${order.customer.email}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; font-size: 14px; color: #6b7280;">Phone</td>
+              <td style="padding: 8px 0; font-size: 14px; color: #1f2937;">${order.customer.phone}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; font-size: 14px; color: #6b7280;">Payment</td>
+              <td style="padding: 8px 0; font-size: 14px; color: #1f2937; font-weight: 600;">${paymentMethod}</td>
+            </tr>
+            <tr>
+              <td style="padding: 8px 0; font-size: 14px; color: #6b7280;">Total</td>
+              <td style="padding: 8px 0; font-size: 20px; color: #065f46; font-weight: 700;">₹${Number(total).toFixed(2)}</td>
+            </tr>
+          </table>
+        </div>
+
+        <!-- Items -->
+        <div style="padding: 0 30px 20px;">
+          <h3 style="color: #1a3329; margin: 0 0 10px; font-size: 15px; font-weight: 700; text-transform: uppercase; letter-spacing: 0.5px;">Items Ordered</h3>
+          <table style="width: 100%; border-collapse: collapse;">
+            <thead>
+              <tr style="background-color: #1a3329; color: white;">
+                <th style="padding: 10px; text-align: left; font-size: 12px;">Product</th>
+                <th style="padding: 10px; text-align: center; font-size: 12px;">Qty</th>
+                <th style="padding: 10px; text-align: right; font-size: 12px;">Price</th>
+                <th style="padding: 10px; text-align: right; font-size: 12px;">Total</th>
+              </tr>
+            </thead>
+            <tbody>
+              ${itemsRows}
+            </tbody>
+          </table>
+        </div>
+
+        <!-- Pricing -->
+        <div style="padding: 0 30px 20px;">
+          <div style="background-color: #f8faf9; padding: 16px; border-radius: 8px;">
+            <table style="width: 100%; border-collapse: collapse;">
+              <tr>
+                <td style="padding: 4px 0; font-size: 13px; color: #6b7280;">Subtotal</td>
+                <td style="padding: 4px 0; font-size: 13px; text-align: right;">₹${subtotal.toFixed(2)}</td>
+              </tr>
+              <tr>
+                <td style="padding: 4px 0; font-size: 13px; color: #6b7280;">Shipping</td>
+                <td style="padding: 4px 0; font-size: 13px; text-align: right;">${Number(shipping) === 0 ? '<span style="color:#16a34a;">FREE</span>' : '₹' + Number(shipping).toFixed(2)}</td>
+              </tr>
+              ${discount > 0 ? `<tr><td style="padding: 4px 0; font-size: 13px; color: #16a34a;">Discount${order.coupon?.code ? ` (${order.coupon.code})` : ''}</td><td style="padding: 4px 0; font-size: 13px; color: #16a34a; text-align: right;">-₹${Number(discount).toFixed(2)}</td></tr>` : ''}
+            </table>
+          </div>
+        </div>
+
+        <!-- Shipping Address -->
+        <div style="padding: 0 30px 24px;">
+          <div style="background-color: #f8faf9; padding: 16px; border-radius: 8px; border-left: 4px solid #6b7280;">
+            <h4 style="margin: 0 0 8px; color: #374151; font-size: 14px;">Shipping Address</h4>
+            <p style="margin: 0; font-size: 13px; color: #4b5563; line-height: 1.5;">${addr || 'N/A'}</p>
+          </div>
+        </div>
+
+        <!-- Footer -->
+        <div style="border-top: 1px solid #e5e7eb; padding: 16px 30px; text-align: center; background-color: #fafafa;">
+          <p style="margin: 0; color: #9ca3af; font-size: 11px;">This is an automated notification from Nisarg Maitri</p>
+        </div>
+      </div>
+    </div>
+  `;
 };
 
-module.exports = { sendEmail, generateOrderEmail, generateDeliveryEmail, generateCancellationEmail };
+module.exports = { sendEmail, generateOrderEmail, generateDeliveryEmail, generateCancellationEmail, generateAdminOrderNotificationEmail };

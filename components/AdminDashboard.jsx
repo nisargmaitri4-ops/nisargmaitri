@@ -21,6 +21,8 @@ import OrdersTab from "./admin/OrdersTab";
 import OrderDetail from "./admin/OrderDetail";
 import ProductsTab from "./admin/ProductsTab";
 import SettingsTab from "./admin/SettingsTab";
+import ServicesTab from "./admin/ServicesTab";
+import WorkTab from "./admin/WorkTab";
 import DeleteModal from "./admin/DeleteModal";
 
 const AdminDashboard = () => {
@@ -65,6 +67,38 @@ const AdminDashboard = () => {
   });
   const [formErrors, setFormErrors] = useState({});
   const [savingProduct, setSavingProduct] = useState(false);
+
+  /* ── Services state ── */
+  const [services, setServices] = useState([]);
+  const [serviceLoading, setServiceLoading] = useState(true);
+  const [showServiceForm, setShowServiceForm] = useState(false);
+  const [editingService, setEditingService] = useState(null);
+  const [serviceForm, setServiceForm] = useState({
+    title: "",
+    description: "",
+    icon: "Leaf",
+    isActive: true,
+  });
+  const [serviceFormErrors, setServiceFormErrors] = useState({});
+  const [savingService, setSavingService] = useState(false);
+
+  /* ── Work state ── */
+  const [work, setWork] = useState([]);
+  const [workLoading, setWorkLoading] = useState(true);
+  const [showWorkForm, setShowWorkForm] = useState(false);
+  const [editingWork, setEditingWork] = useState(null);
+  const [workForm, setWorkForm] = useState({
+    title: "",
+    description: "",
+    details: "",
+    results: "",
+    image: "",
+    gallery: [],
+    tags: [],
+    isActive: true,
+  });
+  const [workFormErrors, setWorkFormErrors] = useState({});
+  const [savingWork, setSavingWork] = useState(false);
 
   /* ── Other state ── */
   const [stats, setStats] = useState(null);
@@ -177,11 +211,49 @@ const AdminDashboard = () => {
     }
   }, [token]);
 
+  /* ── Fetch Services ── */
+  const fetchServices = useCallback(async () => {
+    if (!token) return;
+    setServiceLoading(true);
+    try {
+      const r = await axios.get(getApiUrl() + "/api/services", {
+        headers: { Authorization: "Bearer " + token },
+        timeout: 10000,
+      });
+      setServices(r.data);
+    } catch (e) {
+      if (e.response?.status === 401) { navigate("/login"); return; }
+      toast.error("Failed to load services");
+    } finally {
+      setServiceLoading(false);
+    }
+  }, [token, navigate]);
+
+  /* ── Fetch Work ── */
+  const fetchWork = useCallback(async () => {
+    if (!token) return;
+    setWorkLoading(true);
+    try {
+      const r = await axios.get(getApiUrl() + "/api/work", {
+        headers: { Authorization: "Bearer " + token },
+        timeout: 10000,
+      });
+      setWork(r.data);
+    } catch (e) {
+      if (e.response?.status === 401) { navigate("/login"); return; }
+      toast.error("Failed to load work items");
+    } finally {
+      setWorkLoading(false);
+    }
+  }, [token, navigate]);
+
   useEffect(() => {
     fetchOrders();
     fetchProducts();
     fetchStats();
-  }, [fetchOrders, fetchProducts, fetchStats]);
+    fetchServices();
+    fetchWork();
+  }, [fetchOrders, fetchProducts, fetchStats, fetchServices, fetchWork]);
 
   /* ════════════════════════════════════════════════
      SSE — live order updates
@@ -412,6 +484,151 @@ const AdminDashboard = () => {
     } catch (e) {
       toast.error(e.response?.data?.error || "Seed failed");
     }
+  };
+
+  /* ════════════════════════════════════════════════
+     SERVICE CRUD
+     ════════════════════════════════════════════════ */
+  const resetServiceForm = () => {
+    setServiceForm({ title: "", description: "", icon: "Leaf", isActive: true });
+    setEditingService(null);
+    setServiceFormErrors({});
+    setShowServiceForm(false);
+  };
+
+  const openEditService = (s) => {
+    setEditingService(s);
+    setServiceForm({
+      title: s.title,
+      description: s.description,
+      icon: s.icon || "Leaf",
+      isActive: s.isActive,
+    });
+    setServiceFormErrors({});
+    setShowServiceForm(true);
+  };
+
+  const handleSaveService = async () => {
+    const e = {};
+    if (!serviceForm.title.trim()) e.title = "Required";
+    if (!serviceForm.description.trim()) e.description = "Required";
+    setServiceFormErrors(e);
+    if (Object.keys(e).length > 0) return;
+    setSavingService(true);
+    try {
+      if (editingService) {
+        await axios.put(getApiUrl() + "/api/services/" + editingService._id, serviceForm, {
+          headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        });
+        toast.success("Service updated");
+      } else {
+        await axios.post(getApiUrl() + "/api/services", serviceForm, {
+          headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        });
+        toast.success("Service created");
+      }
+      resetServiceForm();
+      fetchServices();
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Failed to save service");
+    } finally {
+      setSavingService(false);
+    }
+  };
+
+  const handleDeleteService = async (id) => {
+    if (!window.confirm("Delete this service?")) return;
+    try {
+      await axios.delete(getApiUrl() + "/api/services/" + id, {
+        headers: { Authorization: "Bearer " + token },
+      });
+      toast.success("Service deleted");
+      fetchServices();
+    } catch { toast.error("Failed to delete service"); }
+  };
+
+  const handleSeedServices = async () => {
+    try {
+      await axios.post(getApiUrl() + "/api/services/seed", {}, {
+        headers: { Authorization: "Bearer " + token },
+      });
+      toast.success("Services seeded");
+      fetchServices();
+    } catch (err) { toast.error(err.response?.data?.error || "Seed failed"); }
+  };
+
+  /* ════════════════════════════════════════════════
+     WORK CRUD
+     ════════════════════════════════════════════════ */
+  const resetWorkForm = () => {
+    setWorkForm({ title: "", description: "", details: "", results: "", image: "", gallery: [], tags: [], isActive: true });
+    setEditingWork(null);
+    setWorkFormErrors({});
+    setShowWorkForm(false);
+  };
+
+  const openEditWork = (w) => {
+    setEditingWork(w);
+    setWorkForm({
+      title: w.title,
+      description: w.description || "",
+      details: w.details || "",
+      results: w.results || "",
+      image: w.image || "",
+      gallery: w.gallery || [],
+      tags: w.tags || [],
+      isActive: w.isActive,
+    });
+    setWorkFormErrors({});
+    setShowWorkForm(true);
+  };
+
+  const handleSaveWork = async () => {
+    const e = {};
+    if (!workForm.title.trim()) e.title = "Required";
+    setWorkFormErrors(e);
+    if (Object.keys(e).length > 0) return;
+    setSavingWork(true);
+    try {
+      if (editingWork) {
+        await axios.put(getApiUrl() + "/api/work/" + editingWork._id, workForm, {
+          headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        });
+        toast.success("Work updated");
+      } else {
+        await axios.post(getApiUrl() + "/api/work", workForm, {
+          headers: { Authorization: "Bearer " + token, "Content-Type": "application/json" },
+        });
+        toast.success("Work created");
+      }
+      resetWorkForm();
+      fetchWork();
+    } catch (err) {
+      toast.error(err.response?.data?.error || "Failed to save work item");
+    } finally {
+      setSavingWork(false);
+    }
+  };
+
+  const handleDeleteWork = async (id) => {
+    if (!window.confirm("Delete this work item?")) return;
+    try {
+      await axios.delete(getApiUrl() + "/api/work/" + id, {
+        headers: { Authorization: "Bearer " + token },
+      });
+      toast.success("Work deleted");
+      fetchWork();
+    } catch { toast.error("Failed to delete work item"); }
+  };
+
+  const handleSeedWork = async () => {
+    try {
+      await axios.post(getApiUrl() + "/api/work/seed", {}, {
+        headers: { Authorization: "Bearer " + token },
+      });
+      toast.success("Work items seeded");
+      fetchWork();
+    } catch (err) { toast.error(err.response?.data?.error || "Seed failed"); }
   };
 
   /* ════════════════════════════════════════════════
@@ -734,6 +951,44 @@ const AdminDashboard = () => {
             handleToggleActive={handleToggleActive}
             setDeleteTarget={setDeleteTarget}
             handleSeedProducts={handleSeedProducts}
+          />
+        );
+      case "services":
+        return (
+          <ServicesTab
+            services={services}
+            loading={serviceLoading}
+            showForm={showServiceForm}
+            setShowForm={setShowServiceForm}
+            editingService={editingService}
+            serviceForm={serviceForm}
+            setServiceForm={setServiceForm}
+            formErrors={serviceFormErrors}
+            saving={savingService}
+            onSave={handleSaveService}
+            onResetForm={resetServiceForm}
+            onEdit={openEditService}
+            onDelete={handleDeleteService}
+            onSeed={handleSeedServices}
+          />
+        );
+      case "work":
+        return (
+          <WorkTab
+            work={work}
+            loading={workLoading}
+            showForm={showWorkForm}
+            setShowForm={setShowWorkForm}
+            editingWork={editingWork}
+            workForm={workForm}
+            setWorkForm={setWorkForm}
+            formErrors={workFormErrors}
+            saving={savingWork}
+            onSave={handleSaveWork}
+            onResetForm={resetWorkForm}
+            onEdit={openEditWork}
+            onDelete={handleDeleteWork}
+            onSeed={handleSeedWork}
           />
         );
       case "settings":
